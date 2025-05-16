@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Custom CSS -->
+    <link href="css/facts_questions.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="home.html">Home</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownProducts" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Products
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdownProducts">
+                        <a class="dropdown-item" href="#allProducts">All Products</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#Biscuits&Cakes">Biscuits & Cakes</a>
+                        <a class="dropdown-item" href="#CannedFood">Canned Food</a>
+                        <a class="dropdown-item" href="#Cereals">Cereals</a>
+                        <a class="dropdown-item" href="#Snacks">Snacks</a>
+                        <a class="dropdown-item" href="#Commodities">Commodities</a>
+                        <a class="dropdown-item" href="#Jams,Spreads&Honey">Jams, Spreads & Honey</a>
+                        <a class="dropdown-item" href="#Pasta&InstantFood">Pasta & Instant Food</a>
+                        <a class="dropdown-item" href="#Sauce,Spice&Seasoning">Sauce, Spice & Seasoning</a>
+                        <a class="dropdown-item" href="#Sundry">Sundry</a>
+                    </div>
+                <li class="nav-item">
+                    <a class="nav-link" href="about_us.html">About Us</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="orderHistory.html">Order History</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="profile.html">Profile</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="coins_rewards.html">Coins Rewards</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contact_us.html">Contact Us</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="cart.html"><i class="fas fa-shopping-cart"></i> Add to Cart</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="login.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-6">
+                    <img src="image/logo.png" class="logo img-fluid mb-4" alt="Shop Logo">
+                    <h1>Frequently Asked Questions</h1>
+        
+                    <div class="faq-box">
+                        <div class="question" onclick="toggleAnswer(this)">What payment methods do you accept?</div>
+                        <div class="answer">
+                            We only accept payments via QR code scan payment methods.
+                        </div>
+                    </div>
+                    
+                    <div class="faq-box">
+                        <div class="question" onclick="toggleAnswer(this)">What is your return policy?</div>
+                        <div class="answer">
+                            Our return policy allows you to return items within 30 days of purchase for a full refund or exchange.
+                        </div>
+                    </div>
+                    
+                    <div class="faq-box">
+                        <div class="question" onclick="toggleAnswer(this)">How long does shipping take?</div>
+                        <div class="answer">
+                            Shipping times vary depending on your location. Typically, orders are delivered within 3-5 business days.
+                        </div>
+                    </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-5">
+        <div class="footer-container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>FAQ</h5>
+                    <p>Don't understand or have any problems, click<span class="footer-link"><a href="facts_questions.html">HERE</a></span></p>
+                    <h5>Terms & Conditions</h5>
+                    <p>Review the terms & conditions, click<span class="footer-link"><a href="terms_conditions.html">HERE</a></span></p>
+
+                </div>
+                <div class="col-md-4">
+                    <h5>Contact Us</h5>
+                    <p>Email: weijie@gmail.com</p>
+                    <p>Phone: +0123456789</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Follow Us</h5>
+                    <ul class="list-inline">
+                        <li class="list-inline-item"><a href="#"><i class="fab fa-facebook"></i></a></li>
+                        <li class="list-inline-item"><a href="#"><i class="fab fa-twitter"></i></a></li>
+                        <li class="list-inline-item"><a href="#"><i class="fab fa-instagram"></i></a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS (with jQuery) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <!-- Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <!-- Firebase Storage -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <!-- Firebase Authentication -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <!-- Include jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- Bootstrap JavaScript -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        function toggleAnswer(question) {
+            // Hide all answers
+            var allAnswers = document.querySelectorAll('.answer');
+            allAnswers.forEach(function(answer) {
+                answer.classList.remove('show');
+            });
+
+            // Toggle the 'show' class on the next sibling element of the clicked question
+            question.nextElementSibling.classList.toggle('show');
+        }
+    </script>
+
+</body>
+</html>

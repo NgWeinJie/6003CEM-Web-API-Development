@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Promo Code Management</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/promotion.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="dashboard.html">Admin Dashboard</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="add_item.html">Add New Item</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="customer_history.html">Customer Purchase History</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="registered_customer.html">Registered Customer</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="analysis.html">Analysis</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="admin_contactus.html">Contact Us & Feedback Form</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="promotion.html">Promotion</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="voucher_management.html">Voucher Management</a>
+            </li>
+        </ul>
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="admin_login.html" id="logoutButton"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+<body>
+    <div class="container mt-5">
+        <h2>Promo Code Management</h2>
+        <form id="promoForm" class="mb-4">
+            <div class="form-group">
+                <label for="slideImage">Slide Image</label>
+                <input type="file" class="form-control" id="slideImage" accept="image/*" required>
+            </div>
+            <div class="form-group">
+                <label for="promoCode">Promo Code</label>
+                <input type="text" class="form-control" id="promoCode" required>
+            </div>
+            <div class="form-group">
+                <label for="discountAmount">Discount Amount (RM)</label>
+                <input type="number" class="form-control" id="discountAmount" required>
+            </div>
+            <div class="form-group">
+                <label for="minPurchase">Minimum Purchase Amount (RM)</label>
+                <input type="number" class="form-control" id="minPurchase" required>
+            </div>
+            <div class="form-group">
+                <label for="startDate">Start Date</label>
+                <input type="datetime-local" class="form-control" id="startDate" required>
+            </div>
+            <div class="form-group">
+                <label for="endDate">End Date</label>
+                <input type="datetime-local" class="form-control" id="endDate" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Promo Code</button>
+        </form>
+        <h3>Existing Promo Codes</h3>
+        <table class="table" id="promoTable">
+            <thead>
+                <tr>
+                    <th>Slide Image</th>
+                    <th>Promo Code</th>
+                    <th>Discount Amount (RM)</th>
+                    <th>Minimum Purchase Amount (RM)</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Promo codes will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal for editing promo code -->
+    <div class="modal fade" id="editPromoModal" tabindex="-1" role="dialog" aria-labelledby="editPromoModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editPromoModalLabel">Edit Promo Code</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="editPromoForm">
+                        <input type="hidden" id="editPromoId">
+                        <div class="form-group">
+                            <label for="editSlideImage">Slide Image</label>
+                            <input type="file" class="form-control" id="editSlideImage" accept="image/*">
+                        </div>
+                        <div class="form-group">
+                            <label for="editPromoCode">Promo Code</label>
+                            <input type="text" class="form-control" id="editPromoCode" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editDiscountAmount">Discount Amount (RM)</label>
+                            <input type="number" class="form-control" id="editDiscountAmount" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editMinPurchase">Minimum Purchase Amount (RM)</label>
+                            <input type="number" class="form-control" id="editMinPurchase" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editStartDate">Start Date</label>
+                            <input type="datetime-local" class="form-control" id="editStartDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEndDate">End Date</label>
+                            <input type="datetime-local" class="form-control" id="editEndDate" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Promo Code</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="js/promotion.js"></script>
+</body>
+</html>

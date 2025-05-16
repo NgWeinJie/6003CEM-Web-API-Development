@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Custom CSS -->
+    <link href="css/product_details.css" rel="stylesheet">
+    <link href="css/home.css" rel="stylesheet">
+</head>
+<body>
+        <!-- Navigation Bar -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <a class="navbar-brand" href="home.html">Home</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownProducts" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Products
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdownProducts">
+                            <a class="dropdown-item" href="#allProducts">All Products</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="#Biscuits&Cakes">Biscuits & Cakes</a>
+                            <a class="dropdown-item" href="#CannedFood">Canned Food</a>
+                            <a class="dropdown-item" href="#Cereals">Cereals</a>
+                            <a class="dropdown-item" href="#Snacks">Snacks</a>
+                            <a class="dropdown-item" href="#Commodities">Commodities</a>
+                            <a class="dropdown-item" href="#Jams,Spreads&Honey">Jams, Spreads & Honey</a>
+                            <a class="dropdown-item" href="#Pasta&InstantFood">Pasta & Instant Food</a>
+                            <a class="dropdown-item" href="#Sauce,Spice&Seasoning">Sauce, Spice & Seasoning</a>
+                            <a class="dropdown-item" href="#Sundry">Sundry</a>
+                        </div>
+                    <li class="nav-item">
+                        <a class="nav-link" href="about_us.html">About Us</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="orderHistory.html">Order History</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="profile.html">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="coins_rewards.html">Coins Rewards</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="contact_us.html">Contact Us</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="cart.html"><i class="fas fa-shopping-cart"></i> Add to Cart</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="login.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    <!-- Product Details Section -->
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+                <div class="row">
+                    <div class="col-md-6">
+                        <img id="productImage" class="img-fluid" alt="Product Image">
+                    </div>
+                    <div class="col-md-6">
+                        <h2 id="productName"></h2>
+                        <p id="productPrice"></p>
+                        <!-- Quantity Selector -->
+                        <div class="quantity-selector mb-3">
+                            <div class="quantity-btn btn btn-outline-secondary" id="decreaseQuantity">-</div>
+                            <input type="text" class="form-control text-center quantity-input" id="quantity" value="1">
+                            <div class="quantity-btn btn btn-outline-secondary" id="increaseQuantity">+</div>
+                        </div>
+                        <!-- Add to Cart Button -->
+                        <button type="button" class="btn btn-primary btn-add-to-cart" id="addToCart">Add to Cart</button>
+                        <p class="mt-3" id="productStock"></p>
+                        <p id="productDetails"></p>
+                    </div>
+                </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS (with jQuery) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="js/product_details.js"></script>
+    <script src="js/header.js"></script>
+</body>
+</html>

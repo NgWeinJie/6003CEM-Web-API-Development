@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/register.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-6">
+                <img src="image/logo.png" class="logo img-fluid mb-4" alt="Shop Logo">
+                <h1 class="text-center mb-4">Register</h1>
+                <form id="registerForm" class="needs-validation" novalidate>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="user_fname" class="form-label">First Name:</label>
+                            <input type="text" class="form-control" id="user_fullname" required>
+                            <div id="user_fullnameE" class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="user_lname" class="form-label">Last Name:</label>
+                            <input type="text" class="form-control" id="user_lastname" required>
+                            <div id="user_lastnameE" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="user_email" class="form-label">Email:</label>
+                        <input type="email" class="form-control" id="user_email" required>
+                        <div id="user_emailE" class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="user_password" class="form-label">Password:</label>
+                        <input type="password" class="form-control" id="user_password" required>
+                        <div id="user_passwordE" class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="user_address" class="form-label">Address:</label>
+                        <textarea class="form-control" id="user_address" rows="5" required></textarea>
+                        <div id="user_addressE" class="invalid-feedback"></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="user_phoneNo" class="form-label">Phone Number:</label>
+                            <input type="text" class="form-control" id="user_phoneNo" required>
+                            <div id="user_phoneNoE" class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="user_postcode" class="form-label">Postcode:</label>
+                            <input type="text" class="form-control" id="user_postcode" required>
+                            <div id="user_postcodeE" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="user_city" class="form-label">City:</label>
+                            <input type="text" class="form-control" id="user_city" required>
+                            <div id="user_cityE" class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="user_state" class="form-label">State:</label>
+                            <select class="form-select" id="user_state" required>
+                                <option>Perlis</option>
+                                <option>Kedah</option>
+                                <option>Penang</option>
+                                <option>Kelantan</option>
+                                <option>Perak</option>
+                                <option>Terengganu</option>
+                                <option>Pahang</option>
+                                <option>Selangor</option>
+                                <option>Negeri Sembilan</option>
+                                <option>Malacca</option>
+                                <option>Johor</option>
+                                <option>Sabah</option>
+                                <option>Sarawak</option>
+                            </select>
+    
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="user_country" class="form-label">Country:</label>
+                        <input type="text" class="form-control" id="user_countryE" value="Malaysia" disabled>
+                    </div>
+                    <!-- Add more fields here if needed -->
+                    <div class="text-center">
+                        <button type="button" class="btn btn-success" id="registerBtn">Register</button>
+                    </div>
+                    <div class="text-center mt-3">
+                        <p>Already have an account? <a href="login.html">Login</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="js/register.js"></script>
+</body>
+</html>

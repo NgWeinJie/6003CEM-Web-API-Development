@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Register</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/register.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-6">
+                <img src="image/logo.png" class="logo img-fluid mb-4" alt="Shop Logo">
+                <h1 class="text-center mb-4">Admin Register</h1>
+                <form id="adminRegisterForm" class="needs-validation" novalidate>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="admin_fname" class="form-label">First Name:</label>
+                            <input type="text" class="form-control" id="admin_fullname" required>
+                            <div id="admin_fullnameE" class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="admin_lname" class="form-label">Last Name:</label>
+                            <input type="text" class="form-control" id="admin_lastname" required>
+                            <div id="admin_lastnameE" class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="admin_email" class="form-label">Email:</label>
+                        <input type="email" class="form-control" id="admin_email" required>
+                        <div id="admin_emailE" class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="admin_password" class="form-label">Password:</label>
+                        <input type="password" class="form-control" id="admin_password" required>
+                        <div id="admin_passwordE" class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="admin_phoneNo" class="form-label">Phone Number:</label>
+                        <input type="text" class="form-control" id="admin_phoneNo" required>
+                        <div id="admin_phoneNoE" class="invalid-feedback"></div>
+                    </div>
+                    <!-- Add more fields here if needed -->
+                    <div class="text-center">
+                        <button type="button" class="btn btn-success" id="adminRegisterBtn">Register</button>
+                    </div>
+                    <div class="text-center mt-3">
+                        <p>Already have an account? <a href="admin_login.html">Login</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="js/admin_register.js"></script>
+</body>
+</html>

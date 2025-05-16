@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Voucher Redemption</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/home.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="home.html">Home</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownProducts" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Products
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdownProducts">
+                        <a class="dropdown-item" href="#allProducts">All Products</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#Biscuits&Cakes">Biscuits & Cakes</a>
+                        <a class="dropdown-item" href="#CannedFood">Canned Food</a>
+                        <a class="dropdown-item" href="#Cereals">Cereals</a>
+                        <a class="dropdown-item" href="#Snacks">Snacks</a>
+                        <a class="dropdown-item" href="#Commodities">Commodities</a>
+                        <a class="dropdown-item" href="#Jams,Spreads&Honey">Jams, Spreads & Honey</a>
+                        <a class="dropdown-item" href="#Pasta&InstantFood">Pasta & Instant Food</a>
+                        <a class="dropdown-item" href="#Sauce,Spice&Seasoning">Sauce, Spice & Seasoning</a>
+                        <a class="dropdown-item" href="#Sundry">Sundry</a>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="about_us.html">About Us</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="orderHistory.html">Order History</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="coins_rewards.html">Coins Rewards</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="profile.html">Profile</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contact_us.html">Contact Us</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="cart.html"><i class="fas fa-shopping-cart"></i> Add to Cart</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="login.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container mt-5">
+        <h1>Available Vouchers</h1>
+        <div id="userCoins" class="mb-3">
+            <!-- User coins balance will be displayed here -->
+        </div>
+        <div id="voucherContainer" class="row">
+            <!-- Vouchers will be dynamically inserted here -->
+        </div>
+    </div>
+    <div class="container mt-5">
+        <h1>Redemption History</h1>
+        <div id="redeemHistoryContainer">
+            <!-- Redemption history will be dynamically inserted here -->
+        </div>
+    </div>
+
+
+    <!-- Modal for Terms & Conditions -->
+    <div class="modal fade" id="termsModal" tabindex="-1" role="dialog" aria-labelledby="termsModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="termsModalLabel">Terms & Conditions</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="termsText"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal for Redeem Confirmation -->
+    <div class="modal fade" id="redeemModal" tabindex="-1" role="dialog" aria-labelledby="redeemModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="redeemModalLabel">Redeem Voucher Confirmation</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="redeemModalContent">
+                    <p>Are you sure you want to redeem this voucher?</p>
+                    <!-- Promo code will be dynamically inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button id="redeemConfirmBtn" type="button" class="btn btn-primary">Confirm Redeem</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- Footer -->
+        <footer class="footer mt-5">
+            <div class="footer-container">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h5>FAQ</h5>
+                        <p>Don't understand or have any problems, click<span class="footer-link"><a href="facts_questions.html">HERE</a></span></p>
+                        <h5>Terms & Conditions</h5>
+                        <p>Review the terms & conditions, click<span class="footer-link"><a href="terms_conditions.html">HERE</a></span></p>
+    
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Contact Us</h5>
+                        <p>Email: weijie@gmail.com</p>
+                        <p>Phone: +0123456789</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>Follow Us</h5>
+                        <ul class="list-inline">
+                            <li class="list-inline-item"><a href="#"><i class="fab fa-facebook"></i></a></li>
+                            <li class="list-inline-item"><a href="#"><i class="fab fa-twitter"></i></a></li>
+                            <li class="list-inline-item"><a href="#"><i class="fab fa-instagram"></i></a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.3.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.3.2/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.3.2/firebase-auth.js"></script>
+    <script src="js/coins_rewards.js"></script>
+</body>
+</html>
