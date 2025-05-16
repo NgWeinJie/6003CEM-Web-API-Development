@@ -1,0 +1,25 @@
+{
+  "name": "6003cem-web-api-development",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NgWeinJie/6003CEM-Web-API-Development.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NgWeinJie/6003CEM-Web-API-Development/issues"
+  },
+  "homepage": "https://github.com/NgWeinJie/6003CEM-Web-API-Development#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "nodemon": "^3.1.10"
+  }
+}
