@@ -1,0 +1,134 @@
+/* Add your custom styles for the profile page */
+
+/* Main container */
+.container {
+    max-width: 700px;
+    margin: 30px auto;
+    padding: 20px; /* Add padding for space around the content */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Add box shadow */
+    border-radius: 10px; /* Add border radius for rounded corners */
+}
+
+/* Profile details */
+h1, h2 {
+    text-align: center;
+    margin-top: 30px;
+    margin-bottom: 50px;
+}
+
+/* User details */
+p {
+    margin-bottom: 20px;
+}
+
+/* Strong tags for labels */
+strong {
+    font-weight: bold;
+}
+
+/* Navbar */
+.navbar {
+    background-color: #343a40;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+.nav-link {
+    color: white !important;
+}
+
+.nav-link:hover {
+    color: #f8f9fa !important;
+}
+
+.add-to-cart {
+    position: absolute;
+    bottom: 10px; 
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    background-color: #3cb815;
+}
+
+/* FAQ box */
+.faq-box {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: calc(110% - 30px); /* Adjust the width */
+    max-width: 600px; /* Set maximum width */
+}
+
+.row {
+    display: flex;
+    justify-content: center; /* Align items horizontally in the center */
+}
+
+.col-12 {
+    flex: 0 0 auto; /* Prevent columns from growing or shrinking */
+}
+
+.faq-box:hover {
+    background-color: #f0f0f0;
+}
+
+.question {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.answer {
+    display: none;
+    margin-bottom: 20px;
+}
+
+.answer.show {
+    display: block;
+}
+
+/* Footer */
+footer {
+    background-color: #343a40;
+    color: white;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.footer-container {
+    padding: 20px; /* Add padding for space around the content */
+    background-color: #343a40; /* Set background color */
+    color: white; /* Set text color */
+    border-radius: 10px; /* Add border radius for rounded corners */
+}
+
+.footer-container h5 {
+    color: #ffffff; /* Set heading color */
+}
+
+.footer-container p {
+    color: #ffffff; /* Set paragraph text color */
+}
+
+.footer-container a {
+    color: #ffffff; /* Set link color */
+}
+
+.footer-container a:hover {
+    color: #f8f9fa; /* Set link hover color */
+}
+
+.footer-link {
+    display: inline-block;
+    margin-left: 5px; /* Adjust the spacing between text and link */
+}
+
+/* Adjusted margin for card */
+.card {
+    margin-top: 30px;
+}

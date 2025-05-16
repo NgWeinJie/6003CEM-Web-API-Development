@@ -1,0 +1,180 @@
+/* Add your custom styles for the profile page */
+
+/* Main container */
+.container {
+    max-width: 900px; /* Increased the max-width for better layout */
+    margin: 30px auto;
+    padding: 20px; /* Add padding for space around the content */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Add box shadow */
+    border-radius: 10px; /* Add border radius for rounded corners */
+}
+
+/* Payment container adjustments */
+.payment-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    width: 820px;
+}
+
+#userDetailsForm .form-control {
+    width: 750px; /* Adjust the width as needed */
+    max-width: 100%; /* Ensure it does not exceed the container's width */
+}
+
+.qr-payment-container {
+    margin-left: -20px; 
+}
+
+/* Profile details */
+h1 {
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 50px;
+}
+
+h2 {
+    text-align: left;
+    margin-top: 40px;
+    margin-bottom: 50px;
+}
+
+.payment-section h5 {
+    color: #007bff; /* Bootstrap 'btn-primary' color - color: #28a745;*/
+}
+
+/* User details */
+p {
+    margin-bottom: 20px;
+}
+
+.container p {
+    max-width: 800px; /* Adjust the maximum width of the paragraphs */
+    margin-bottom: 20px;
+    margin-left: 10px; /* Add margin to the left */
+}
+
+/* Strong tags for labels */
+strong {
+    font-weight: bold;
+}
+
+/* Navbar */
+.navbar {
+    background-color: #343a40;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+.nav-link {
+    color: white !important;
+}
+
+.nav-link:hover {
+    color: #f8f9fa !important;
+}
+
+.add-to-cart {
+    position: absolute;
+    bottom: 10px; 
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    background-color: #3cb815;
+}
+
+/* Footer */
+footer {
+    background-color: #343a40;
+    color: white;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.footer-container {
+    padding: 20px; /* Add padding for space around the content */
+    background-color: #343a40; /* Set background color */
+    color: white; /* Set text color */
+    border-radius: 10px; /* Add border radius for rounded corners */
+}
+
+.footer-container h5 {
+    color: #ffffff; /* Set heading color */
+}
+
+.footer-container p {
+    color: #ffffff; /* Set paragraph text color */
+}
+
+.footer-container a {
+    color: #ffffff; /* Set link color */
+}
+
+.footer-container a:hover {
+    color: #f8f9fa; /* Set link hover color */
+}
+
+.footer-link {
+    display: inline-block;
+    margin-left: 5px; /* Adjust the spacing between text and link */
+}
+
+/* Adjusted margin for card */
+.card {
+    margin-top: 30px;
+}
+
+/* CSS for custom toggle switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+    vertical-align: middle;
+    margin-left: 10px; /* Adjust margin as needed */
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #4CAF50;
+}
+
+input:checked + .slider:before {
+    transform: translateX(20px); /* Adjust position as needed */
+}
+
+.gold {
+    color: gold; /* Adjust to your desired yellow or gold color */
+}

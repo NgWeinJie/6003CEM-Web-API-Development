@@ -1,0 +1,72 @@
+
+
+body {
+    background-image: linear-gradient(to bottom, #4CAF50, #FDD835); /* Gradient background */
+    color: #333; /* Dark gray color for text */
+}
+
+.container {
+    max-width: 2000px; /* Adjust the maximum width as needed */
+    margin: 0 auto; /* Center the container horizontally */
+    background-color: rgba(255, 255, 255, 0.7); /* Translucent white background */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Soft shadow effect */
+    padding: 50px;
+}
+
+.logo {
+    display: block;
+    margin: 0 auto;
+    width: 200px;
+    height: auto;
+}
+
+h1 {
+    text-align: center;
+    color: #4CAF50; /* Green color */
+    margin-bottom: 30px;
+}
+
+.btn-success {
+    width: 120px;
+    height: 40px;
+    font-size: 18px;
+    border-radius: 20px;
+    background-color: #4CAF50; /* Green color */
+    color: #fff; /* White color */
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-success:hover {
+    background-color: #45a049; /* Darker green color on hover */
+}
+
+.form-label {
+    font-weight: bold;
+    color: #333; /* Dark gray color */
+}
+
+.form-control {
+    border-radius: 5px;
+}
+
+.invalid-feedback {
+    color: #dc3545;
+    display: block !important;
+}
+
+
+.text-center {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.mb-3 {
+    margin-bottom: 20px;
+}
+
+.row {
+    margin-bottom: 20px;
+}
+

@@ -1,0 +1,32 @@
+.container {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 20px; 
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px; 
+}
+
+h2 {
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 40px;
+}
+
+
+.card {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-body {
+    background-color: #ffffff;
+}
+
+.card-text {
+    margin-bottom: 0;
+}
+

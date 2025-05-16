@@ -1,0 +1,77 @@
+/* Container */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Order History */
+.order-history-title {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 30px;
+}
+
+/* Order Card */
+.order-card {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.order-card-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.order-details {
+    margin-bottom: 15px;
+}
+
+/* Cart Items */
+.cart-items-container {
+    margin-top: 20px;
+}
+
+.cart-items-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.cart-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.cart-table th,
+.cart-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.cart-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+/* Product Image */
+.product-image {
+    width: 100px;
+    height: auto;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Text Alignment */
+.text-right {
+    text-align: right !important;
+}
+
+.reorder-all-button {
+    width: 100%;
+    background-color: rgb(14, 164, 14);
+}

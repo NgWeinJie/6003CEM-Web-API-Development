@@ -1,0 +1,91 @@
+/* Add your custom styles for the profile page */
+
+/* Main container */
+.container {
+    max-width: 800px;
+    margin: 20px auto;
+}
+
+/* Profile details */
+h1, h2 {
+    text-align: center;
+    margin-top: 30px;
+    margin-bottom: 50px;
+}
+
+/* User details */
+p {
+    margin-bottom: 20px;
+}
+
+/* Strong tags for labels */
+strong {
+    font-weight: bold;
+}
+
+/* Navbar */
+.navbar {
+    background-color: #343a40;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+}
+
+.nav-link {
+    color: white !important;
+}
+
+.nav-link:hover {
+    color: #f8f9fa !important;
+}
+
+.add-to-cart {
+    position: absolute;
+    bottom: 10px; 
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    background-color: #3cb815;
+}
+
+/* Footer */
+footer {
+    background-color: #343a40;
+    color: white;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.footer-container {
+    padding: 20px; /* Add padding for space around the content */
+    background-color: #343a40; /* Set background color */
+    color: white; /* Set text color */
+    border-radius: 10px; /* Add border radius for rounded corners */
+}
+
+.footer-container h5 {
+    color: #ffffff; /* Set heading color */
+}
+
+.footer-container p {
+    color: #ffffff; /* Set paragraph text color */
+}
+
+.footer-container a {
+    color: #ffffff; /* Set link color */
+}
+
+.footer-container a:hover {
+    color: #f8f9fa; /* Set link hover color */
+}
+
+.footer-link {
+    display: inline-block;
+    margin-left: 5px; /* Adjust the spacing between text and link */
+}
+
+/* Adjusted margin for card */
+.card {
+    margin-top: 30px;
+}
