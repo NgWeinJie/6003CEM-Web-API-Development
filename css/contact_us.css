@@ -1,10 +1,13 @@
-
+body{
+    background-color: #F8F8F8 !important;
+}
 .container {
     max-width: 700px;
     margin: 30px auto;
     padding: 20px; 
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     border-radius: 10px; 
+    background-color: white;
 }
 
 h1, h2, h3 {
@@ -46,7 +49,7 @@ ul li {
 
 /* Navbar */
 .navbar {
-    background-color: #343a40;
+    background-color: #392613 !important;
 }
 
 .navbar-brand {
@@ -63,7 +66,7 @@ ul li {
 
 /* Footer */
 footer {
-    background-color: #343a40;
+    background-color: #392613;
     color: white;
     text-align: center;
     padding: 1rem 0;
@@ -71,7 +74,7 @@ footer {
 
 .footer-container {
     padding: 20px;
-    background-color: #343a40;
+    background-color: #392613;
     color: white;
     border-radius: 10px; 
 }
@@ -106,4 +109,14 @@ footer {
 .list-inline-item {
     display: inline-block;
     margin-right: 10px;
+}
+
+.btn-send{
+    background-color:#392613 ;
+    color: white;
+}
+
+.btn-send:hover{
+    background-color: #734d26;
+    color: white;
 }

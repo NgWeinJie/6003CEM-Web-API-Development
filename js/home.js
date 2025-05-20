@@ -92,7 +92,7 @@ function createProductCard(product, productId) {
     const card = document.createElement('div');
     card.classList.add('card');
     card.style.height = '480px';
-    card.style.backgroundColor = '#ebf8ff';
+    // card.style.backgroundColor = '#ebf8ff';
     card.style.borderRadius = '8px';
     card.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)'; 
     card.style.transition = 'transform 0.2s';
@@ -103,7 +103,8 @@ function createProductCard(product, productId) {
     img.alt = product.itemName;
     img.style.height = '250px';
     img.style.borderRadius = '8px 8px 0 0'; // Match card corners
-    img.style.backgroundColor = '#ebf8ff';
+    // img.style.backgroundColor = '#ebf8ff';
+    img.style.padding = '20px';
 
     const cardBody = document.createElement('div');
     cardBody.classList.add('card-body');

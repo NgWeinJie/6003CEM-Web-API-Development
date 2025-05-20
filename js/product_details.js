@@ -32,8 +32,8 @@ async function fetchProductDetails(productId) {
             // Populate HTML elements with product details
             productNameElement.textContent = productData.itemName;
             productImageElement.src = productData.itemImageURL;
-            productPriceElement.textContent = `Price: RM ${productData.itemPrice}`;
-            productStockElement.textContent = `Stock: ${productData.itemStock}`;
+            productPriceElement.textContent = `RM ${productData.itemPrice}`;
+            productStockElement.textContent = `In Stock: ${productData.itemStock}`;
             productDetailsElement.textContent = productData.itemDetails;
         } else {
             console.error('No such product!');
