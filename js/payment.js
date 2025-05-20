@@ -229,7 +229,7 @@ async function saveOrder(currentUser, promoCode) {
         return;
     }
 
-    // Get user details
+    // Collect user details
     const userName = document.getElementById('userName').value;
     const userPhone = document.getElementById('userPhone').value;
     const userAddress = document.getElementById('userAddress').value;
@@ -238,26 +238,64 @@ async function saveOrder(currentUser, promoCode) {
     const userState = document.getElementById('userState').value;
     const userRemark = document.getElementById('userRemark').value;
 
-    // Get cart items
+    // Collect cart items safely
     const cartItems = [];
     const paymentItemsContainer = document.getElementById('paymentItems');
     paymentItemsContainer.querySelectorAll('.payment-item').forEach(item => {
-        const productName = item.querySelector('p:nth-child(1)').textContent.split(':')[1].trim();
-        const productPrice = parseFloat(item.querySelector('p:nth-child(2)').textContent.split(':')[1].trim().replace('RM ', ''));
-        const productQuantity = parseInt(item.querySelector('p:nth-child(3)').textContent.split(':')[1].trim());
+        const p1 = item.querySelector('p:nth-child(1)');
+        const p2 = item.querySelector('p:nth-child(2)');
+        const p3 = item.querySelector('p:nth-child(3)');
+
+        // Check if the elements exist
+        if (!p1 || !p2 || !p3) {
+            console.warn('Missing product info paragraphs in payment-item:', item);
+            return; // skip this item if format unexpected
+        }
+
+        // Split text and check if split is valid
+        const productNameParts = p1.textContent.split(':');
+        const productPriceParts = p2.textContent.split(':');
+        const productQuantityParts = p3.textContent.split(':');
+
+        if (productNameParts.length < 2 || productPriceParts.length < 2 || productQuantityParts.length < 2) {
+            console.warn('Unexpected format in payment-item paragraphs:', item);
+            return; // skip this item if format unexpected
+        }
+
+        const productName = productNameParts[1].trim();
+        const productPrice = parseFloat(productPriceParts[1].trim().replace('RM ', ''));
+        const productQuantity = parseInt(productQuantityParts[1].trim());
+
         cartItems.push({ productName, productPrice, productQuantity });
     });
 
-    // Generate tracking number
+    // Generate tracking number (make sure you have this function implemented)
     const trackingNumber = generateTrackingNumber();
 
-    // Calculate total amount
-    const totalAmount = parseFloat(document.getElementById('totalAmount').textContent.split('RM ')[1].trim());
+    // Safely parse total amount from text
+    const totalAmountText = document.getElementById('totalAmount').textContent;
+    const totalAmountSplit = totalAmountText.split('RM ');
+    if (totalAmountSplit.length < 2) {
+        alert('Total amount format is invalid.');
+        return;
+    }
+    const totalAmount = parseFloat(totalAmountSplit[1].trim());
+    if (isNaN(totalAmount)) {
+        alert('Total amount is not a valid number.');
+        return;
+    }
 
-    // Calculate points (1 point for each RM spent)
     const pointsEarned = Math.floor(totalAmount);
 
-    // Create order object
+    // Coins discount if redeem switch is checked
+    const redeemCoinsSwitch = document.getElementById('redeemCoinsSwitch');
+    let coinsDiscount = 0;
+    if (redeemCoinsSwitch.checked) {
+        const userCoins = parseInt(document.getElementById('userCoins').textContent);
+        coinsDiscount = userCoins * 0.01;
+    }
+
+    // Build order object
     const order = {
         userId: currentUser.uid,
         userName,
@@ -269,58 +307,29 @@ async function saveOrder(currentUser, promoCode) {
         userRemark,
         cartItems,
         totalAmount,
-        shippingFee: 10.00, // Fixed shipping fee
+        shippingFee: 10.00,
         status: "Order Received",
         trackingNumber,
         promoCode: promoCode || '',
-        discount: discount || 0,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        discount: 0,  // replace with your discount logic if any
+        coinsDiscount,
+        pointsEarned,
     };
 
-    // Add coinsDiscount to order if redeemCoinsSwitch is checked
-    const redeemCoinsSwitch = document.getElementById('redeemCoinsSwitch');
-    if (redeemCoinsSwitch.checked) {
-        const userCoins = parseInt(document.getElementById('userCoins').textContent);
-        const coinsDiscount = userCoins * 0.01; // Calculate coins discount (assuming 1% per coin)
-        order.coinsDiscount = coinsDiscount;
-    }
-
     try {
-        // Save order to Firestore
-        const orderRef = await db.collection('orders').add(order);
+        const response = await fetch('/api/payment', {  // your backend API route
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(order),
+        });
 
-        // Update product stock
-        await updateProductStock(cartItems);
+        if (!response.ok) throw new Error('Failed to place order');
 
-        // Delete cart items
-        await deleteCartItems(currentUser);
+        const data = await response.json();
 
-        // Update user points
-        const userDocRef = db.collection('users').doc(currentUser.uid);
-        const userDoc = await userDocRef.get();
-        if (userDoc.exists) {
-            const userData = userDoc.data();
-            let userPoints = userData.points || 0;
+        alert(`Payment successful. Your tracking number is: ${data.trackingNumber}. You earned ${data.pointsEarned} points.`);
 
-            // Check if redeem coins switch is checked
-            if (redeemCoinsSwitch.checked) {
-                const redeemedPoints = userPoints; // User can redeem all their points
-                userPoints -= redeemedPoints;
-            }
-
-            // Add earned points
-            userPoints += pointsEarned;
-
-            // Update user points in Firestore
-            await userDocRef.update({
-                points: userPoints
-            });
-
-            // Alert payment successful with tracking number and points earned
-            alert(`Payment successful. Your tracking number is: ${trackingNumber}. You earned ${pointsEarned} points.`);
-        }
-
-        // Redirect to order home page
+        // Redirect or update UI after success
         window.location.href = 'home.html';
     } catch (error) {
         console.error('Error saving order:', error);

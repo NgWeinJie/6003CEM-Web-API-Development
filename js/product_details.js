@@ -23,7 +23,6 @@ async function fetchProductDetails(productId) {
         productPriceElement.textContent = `Price: RM ${product.price.toFixed(2)}`;
         productStockElement.textContent = `Stock: ${product.stock}`;
         productDetailsElement.textContent = product.description;
-
     } catch (error) {
         console.error('Error fetching product:', error);
         alert('Failed to load product details.');

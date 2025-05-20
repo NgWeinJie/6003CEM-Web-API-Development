@@ -77,17 +77,17 @@ async function fetchCartItems(userId) {
 
       const minusButton = document.createElement('button');
       minusButton.textContent = '-';
-      minusButton.classList.add('btn', 'btn-danger', 'mr-1');
+      minusButton.classList.add('btn', 'btn-primary', 'mr-1');
 
       const quantityInput = document.createElement('input');
       quantityInput.type = 'number';
       quantityInput.value = cartItem.productQuantity;
-      quantityInput.classList.add('form-control', 'd-inline-block', 'w-25', 'text-center');
+      quantityInput.classList.add('form-control', 'd-inline-block', 'w-25', 'text-center', 'quantity-input');
       quantityInput.setAttribute('max', cartItem.productStock);
 
       const plusButton = document.createElement('button');
       plusButton.textContent = '+';
-      plusButton.classList.add('btn', 'btn-success', 'ml-1');
+      plusButton.classList.add('btn', 'btn-primary', 'ml-1');
 
       async function updateQuantity(newQty) {
         if (newQty < 1) newQty = 1;

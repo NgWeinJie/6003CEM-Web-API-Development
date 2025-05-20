@@ -1,43 +1,132 @@
 const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb');
-const mongoose = require('mongoose');
-const cors = require('cors');
 const path = require('path');
+const mongoose = require('mongoose');
+const { MongoClient, ObjectId } = require('mongodb');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://User:1234@cluster0.oro1vef.mongodb.net/webApi';
 
+// === MONGOOSE (for orders) ===
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('✅ Connected to MongoDB (Mongoose)'))
+.catch(err => console.error('❌ Mongoose connection error:', err));
+
+// Order Schema (Mongoose)
+const orderSchema = new mongoose.Schema({
+  userId: String,
+  userName: String,
+  userPhone: String,
+  userAddress: String,
+  userPostcode: String,
+  userCity: String,
+  userState: String,
+  userRemark: String,
+  cartItems: [{ productName: String, productPrice: Number, productQuantity: Number }],
+  totalAmount: Number,
+  shippingFee: Number,
+  status: String,
+  trackingNumber: String,
+  promoCode: String,
+  discount: Number,
+  coinsDiscount: Number,
+  pointsEarned: Number,
+  timestamp: { type: Date, default: Date.now }
+});
+const Order = mongoose.model('Order', orderSchema);
+
+// === NATIVE MONGODB CLIENT (for cart, users, etc.) ===
+const client = new MongoClient(MONGO_URI);
+const dbName = 'webApi';
+const cartCollection = 'cart';
+
+async function connectDB() {
+  if (!client.isConnected?.()) {
+    await client.connect();
+  }
+  return client.db(dbName);
+}
+
+// === MIDDLEWARE ===
 app.use(cors());
 app.use(express.json());
 
-// ✅ Serve static files
+// === STATIC FILES ===
 app.use(express.static(path.join(__dirname, 'html')));
 app.use('/html', express.static(path.join(__dirname, 'html')));
 app.use('/js', express.static(path.join(__dirname, 'js')));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/image', express.static(path.join(__dirname, 'image')));
 
-// ✅ Serve home.html at root
+// === ROOT ROUTE ===
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'html', 'home.html'));
 });
 
-// === MONGODB: Native Client for Cart ===
-const client = new MongoClient(process.env.MONGO_URI);
-const dbName = 'webApi';
-const cartCollection = 'cart';
+// === ORDER APIs ===
+app.post('/api/payment', async (req, res) => {
+  try {
+    const orderData = req.body;
+    const serverIp = process.env.SERVER_IP || '127.0.0.1';
+    const trackingUrl = `http://${serverIp}:${PORT}/track/${orderData.trackingNumber}`;
+    orderData.trackingUrl = trackingUrl;
 
-async function connectDB() {
-  await client.connect();
-  return client.db(dbName);
-}
+    const order = new Order(orderData);
+    await order.save();
 
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(trackingUrl)}`;
+
+    res.status(201).json({
+      message: 'Order saved',
+      trackingNumber: order.trackingNumber,
+      pointsEarned: order.pointsEarned,
+      qrCodeUrl,
+    });
+  } catch (error) {
+    console.error('❌ Error saving order:', error);
+    res.status(500).json({ error: 'Failed to save order' });
+  }
+});
+
+app.get('/api/orders', async (req, res) => {
+  try {
+    const orders = await Order.find().sort({ timestamp: -1 });
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error('❌ Error fetching orders:', error);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
+app.get('/track/:trackingNumber', async (req, res) => {
+  try {
+    const order = await Order.findOne({ trackingNumber: req.params.trackingNumber });
+    if (!order) {
+      return res.status(404).send('<h1>Tracking info not found</h1>');
+    }
+
+    res.send(`
+      <h1>Tracking Information</h1>
+      <p><strong>Tracking Number:</strong> ${order.trackingNumber}</p>
+      <p><strong>Status:</strong> ${order.status}</p>
+      <p><strong>Order Date:</strong> ${new Date(order.timestamp).toLocaleString()}</p>
+      <p><strong>Shipping Address:</strong> ${order.userAddress}, ${order.userCity}, ${order.userState}, ${order.userPostcode}</p>
+    `);
+  } catch (err) {
+    console.error('❌ Tracking error:', err);
+    res.status(500).send('<h1>Server error</h1>');
+  }
+});
+
+// === CART APIs ===
 app.get('/api/cart', async (req, res) => {
   const userId = req.query.userId;
-  if (!userId) {
-    return res.status(400).json({ message: 'Missing userId query parameter' });
-  }
+  if (!userId) return res.status(400).json({ message: 'Missing userId query parameter' });
 
   try {
     const db = await connectDB();
@@ -45,46 +134,34 @@ app.get('/api/cart', async (req, res) => {
     const items = await collection.find({ userId }).toArray();
     res.status(200).json(items);
   } catch (error) {
-    console.error('Failed to fetch cart items:', error);
+    console.error('❌ Failed to fetch cart items:', error);
     res.status(500).json({ message: 'Failed to fetch cart items' });
   }
 });
 
-// ✅ POST add item to cart
 app.post('/api/cart', async (req, res) => {
   const cartItem = req.body;
-
-  if (!cartItem.userId) {
-    return res.status(401).json({ message: 'Please login before adding to cart' });
-  }
+  if (!cartItem.userId) return res.status(401).json({ message: 'Please login before adding to cart' });
 
   try {
     const db = await connectDB();
-    const collection = db.collection(cartCollection);
-
-    const result = await collection.insertOne(cartItem);
+    const result = await db.collection(cartCollection).insertOne(cartItem);
     res.status(200).json({ message: 'Cart item added', itemId: result.insertedId });
   } catch (error) {
-    console.error('Insert failed:', error);
+    console.error('❌ Insert failed:', error);
     res.status(500).json({ message: 'Failed to add cart item' });
   }
 });
 
-// ✅ PATCH update item quantity by _id
 app.patch('/api/cart/:id', async (req, res) => {
-  const cartItemId = req.params.id;
+  const { id } = req.params;
   const { productQuantity } = req.body;
-
-  if (productQuantity == null) {
-    return res.status(400).json({ message: 'Missing productQuantity in body' });
-  }
+  if (productQuantity == null) return res.status(400).json({ message: 'Missing productQuantity' });
 
   try {
     const db = await connectDB();
-    const collection = db.collection(cartCollection);
-
-    const result = await collection.updateOne(
-      { _id: new ObjectId(cartItemId) },
+    const result = await db.collection(cartCollection).updateOne(
+      { _id: new ObjectId(id) },
       { $set: { productQuantity: parseInt(productQuantity) } }
     );
 
@@ -94,20 +171,17 @@ app.patch('/api/cart/:id', async (req, res) => {
       res.status(404).json({ message: 'Cart item not found' });
     }
   } catch (error) {
-    console.error('Update failed:', error);
+    console.error('❌ Update failed:', error);
     res.status(500).json({ message: 'Failed to update cart item' });
   }
 });
 
-// ✅ DELETE cart item by _id
 app.delete('/api/cart/:id', async (req, res) => {
-  const cartItemId = req.params.id;
+  const { id } = req.params;
 
   try {
     const db = await connectDB();
-    const collection = db.collection(cartCollection);
-
-    const result = await collection.deleteOne({ _id: new ObjectId(cartItemId) });
+    const result = await db.collection(cartCollection).deleteOne({ _id: new ObjectId(id) });
 
     if (result.deletedCount === 1) {
       res.status(200).json({ message: 'Cart item deleted' });
@@ -115,12 +189,12 @@ app.delete('/api/cart/:id', async (req, res) => {
       res.status(404).json({ message: 'Cart item not found' });
     }
   } catch (error) {
-    console.error('Delete failed:', error);
+    console.error('❌ Delete failed:', error);
     res.status(500).json({ message: 'Failed to delete cart item' });
   }
 });
 
-
+// === USER REGISTRATION ===
 app.post('/api/register', async (req, res) => {
   const userData = req.body;
 
@@ -132,13 +206,14 @@ app.post('/api/register', async (req, res) => {
     const result = await users.insertOne(userData);
     res.status(200).json({ message: 'User registered successfully', id: result.insertedId });
   } catch (error) {
-    console.error('Error saving user:', error);
+    console.error('❌ Error saving user:', error);
     res.status(500).json({ message: 'Failed to register user' });
   } finally {
     await client.close();
   }
 });
 
+// === START SERVER ===
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
