@@ -54,7 +54,7 @@ async function fetchCartItems(userId) {
       // Image
       const imageCell = document.createElement('td');
       const image = document.createElement('img');
-      image.src = cartItem.productImageURL || cartItem.productImage[0]; // fallback if needed
+      image.src = cartItem.productImage;
       image.alt = cartItem.productName;
       image.style.width = '120px';
       image.style.height = '120px';
@@ -156,8 +156,6 @@ async function fetchCartItems(userId) {
 
     updateTotalPrice();
 
-    // Promo code & payment logic unchanged
-
   } catch (error) {
     console.error('Error fetching cart items:', error);
     alert('Failed to fetch cart items. Please try again later.');
@@ -205,11 +203,16 @@ function renumberProducts() {
 
 // On DOM load, get user ID from localStorage and fetch cart
 document.addEventListener('DOMContentLoaded', () => {
-  const uid = localStorage.getItem('uid');  // <-- read user ID here
+  const uid = localStorage.getItem('uid');
 
   if (uid) {
     fetchCartItems(uid);
   } else {
     alert('Please log in to view your cart.');
   }
+
+  const paymentBtn = document.getElementById('proceedToPaymentBtn');
+  paymentBtn.addEventListener('click', () => {
+    window.location.href = '/payment.html';
+  });
 });

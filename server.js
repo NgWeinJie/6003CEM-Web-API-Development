@@ -27,7 +27,7 @@ const orderSchema = new mongoose.Schema({
   userCity: String,
   userState: String,
   userRemark: String,
-  cartItems: [{ productName: String, productPrice: Number, productQuantity: Number }],
+  cartItems: [{ productName: String, productPrice: Number, productQuantity: Number, productImage: String }],
   totalAmount: Number,
   shippingFee: Number,
   status: String,
@@ -120,6 +120,114 @@ app.get('/track/:trackingNumber', async (req, res) => {
   } catch (err) {
     console.error('❌ Tracking error:', err);
     res.status(500).send('<h1>Server error</h1>');
+  }
+});
+
+app.get('/api/users/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    const db = await connectDB();
+    const user = await db.collection('users').findOne({ uid: userId });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ message: 'Failed to fetch user' });
+  }
+});
+
+// === USER POINTS API ===
+app.patch('/api/users/:userId/points', async (req, res) => {
+  const userId = req.params.userId;
+  const { pointsEarned, pointsRedeemed } = req.body;
+  
+  if (!userId) {
+    return res.status(400).json({ message: 'User ID is required' });
+  }
+  
+  try {
+    const db = await connectDB();
+    const user = await db.collection('users').findOne({ uid: userId });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Calculate the new points balance
+    const currentPoints = user.points || 0;
+    const newPoints = currentPoints + (pointsEarned || 0) - (pointsRedeemed || 0);
+    
+    // Update the user's points
+    const result = await db.collection('users').updateOne(
+      { uid: userId },
+      { $set: { points: newPoints } }
+    );
+    
+    if (result.modifiedCount === 1) {
+      res.status(200).json({ 
+        message: 'User points updated successfully',
+        previousPoints: currentPoints,
+        earned: pointsEarned || 0,
+        redeemed: pointsRedeemed || 0,
+        currentPoints: newPoints
+      });
+    } else {
+      res.status(500).json({ message: 'Failed to update user points' });
+    }
+  } catch (error) {
+    console.error('❌ Error updating user points:', error);
+    res.status(500).json({ message: 'Failed to update user points' });
+  }
+});
+
+// === CLEAR CART API ===
+app.delete('/api/cart/clear', async (req, res) => {
+  const userId = req.query.userId;
+  
+  if (!userId) {
+    return res.status(400).json({ message: 'User ID is required' });
+  }
+  
+  try {
+    const db = await connectDB();
+    const result = await db.collection(cartCollection).deleteMany({ userId });
+    
+    res.status(200).json({ 
+      message: 'Cart cleared successfully',
+      itemsDeleted: result.deletedCount
+    });
+  } catch (error) {
+    console.error('❌ Error clearing cart:', error);
+    res.status(500).json({ message: 'Failed to clear cart' });
+  }
+});
+
+// === REORDER ALL ITEMS API ===
+app.post('/api/cart/reorder', async (req, res) => {
+  const { userId, items } = req.body;
+
+  if (!userId || !Array.isArray(items)) {
+    return res.status(400).json({ message: 'userId and items array are required' });
+  }
+
+  try {
+    const db = await connectDB();
+    const collection = db.collection(cartCollection);
+
+    const itemsToInsert = items.map(item => ({
+      userId,
+      productName: item.productName,
+      productPrice: item.productPrice,
+      productQuantity: item.productQuantity,
+      productImage: item.productImage || '',
+    }));
+
+    await collection.insertMany(itemsToInsert);
+
+    res.status(200).json({ message: 'Reordered items added to cart' });
+  } catch (error) {
+    console.error('❌ Reorder error:', error);
+    res.status(500).json({ message: 'Failed to reorder items' });
   }
 });
 
