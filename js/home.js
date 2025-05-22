@@ -117,7 +117,7 @@ function createProductCardFromAPI(product) {
         productName: product.title,
         productPrice: product.price,
         productBrand: product.brand,
-        productImage: product.images,
+        productImage: product.images[0] || '',
         productStock: product.stock,
         productQuantity: 1
     };
