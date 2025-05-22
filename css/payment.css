@@ -1,5 +1,7 @@
 /* Add your custom styles for the profile page */
-
+body{
+    background-color: #F8F8F8 !important;
+}
 /* Main container */
 .container {
     max-width: 900px; /* Increased the max-width for better layout */
@@ -7,6 +9,7 @@
     padding: 20px; /* Add padding for space around the content */
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Add box shadow */
     border-radius: 10px; /* Add border radius for rounded corners */
+    background-color: white;
 }
 
 /* Payment container adjustments */
@@ -62,7 +65,7 @@ strong {
 
 /* Navbar */
 .navbar {
-    background-color: #343a40;
+    background-color: #392613 !important;
 }
 
 .navbar-brand {
@@ -88,7 +91,7 @@ strong {
 
 /* Footer */
 footer {
-    background-color: #343a40;
+    background-color: #392613;
     color: white;
     text-align: center;
     padding: 1rem 0;
@@ -96,7 +99,7 @@ footer {
 
 .footer-container {
     padding: 20px; /* Add padding for space around the content */
-    background-color: #343a40; /* Set background color */
+    background-color: #392613; /* Set background color */
     color: white; /* Set text color */
     border-radius: 10px; /* Add border radius for rounded corners */
 }
@@ -177,4 +180,15 @@ input:checked + .slider:before {
 
 .gold {
     color: gold; /* Adjust to your desired yellow or gold color */
+}
+
+.btn-success{
+    background-color: #734d26;
+    color: white;
+    border: none;
+}
+
+.btn-success:hover{
+    background-color: #ac7339;
+    color: white;
 }

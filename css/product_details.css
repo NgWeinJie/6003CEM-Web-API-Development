@@ -16,23 +16,38 @@
 .quantity-btn {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: 25%;
     font-size: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    border-color: #ced4da;
+}
+.quantity-btn:hover{
+    background-color: #734d26;
+    color: white;
 }
 .quantity-input {
     width: 60px;
     text-align: center;
     font-size: 16px;
-    border: 1px solid #ced4da;
+    border: none;
     border-radius: 5px;
+    background-color: #f8f8f8;
 }
 .btn-add-to-cart {
     width: 100%;
     font-size: 18px;
+    height: 60px;
+    background-color: #734d26;
+    border: none;
+}
+
+.btn-add-to-cart:hover {
+    color: #fff;
+    background-color: #ac7339;
+    border-color: transparent;
 }
 
 #productName {
@@ -45,6 +60,8 @@
 
 #productPrice {
     margin-bottom: 50px;
+    font-size: 24px;
+    font-weight: bold;
 }
 
 #productStock {
