@@ -66,13 +66,21 @@ let cartItemsWithImage = [];
 // Fetch cart items from backend and display
 async function fetchCartItems(userId) {
   try {
-    const res = await fetch(`/api/cart?userId=${userId}`);
+    const res = await fetch(`/api/cart/${userId}`);
     if (!res.ok) throw new Error('Failed to fetch cart items');
+
     const cartItems = await res.json();
-    cartItemsWithImage = cartItems; // save full cart for order processing
+    cartItemsWithImage = cartItems; // save full cart for order processing (assuming global)
 
     const container = document.getElementById('paymentItems');
-    container.innerHTML = '';
+    container.innerHTML = '';  // clear container
+
+    if (cartItems.length === 0) {
+      container.textContent = 'Your cart is empty.';
+      document.getElementById('shippingFee').textContent = '';
+      document.getElementById('totalAmount').textContent = '';
+      return;
+    }
 
     let totalAmount = 0;
     const shippingFee = 10.00;
@@ -91,7 +99,9 @@ async function fetchCartItems(userId) {
       totalAmount += item.productPrice * item.productQuantity;
     });
 
-    if (discount > 0) totalAmount -= discount;
+    // Use discount if defined, else default to 0
+    const discountAmount = typeof discount === 'number' ? discount : 0;
+    if (discountAmount > 0) totalAmount -= discountAmount;
 
     document.getElementById('shippingFee').textContent = `Shipping Fee: RM ${shippingFee.toFixed(2)}`;
 
@@ -102,9 +112,11 @@ async function fetchCartItems(userId) {
 
   } catch (err) {
     console.error(err);
+    // Optionally show error message on page instead of alert
     alert('Failed to load cart items.');
   }
 }
+
 
 // Update total amount when redeem coins switch toggled
 function updateTotalAmount() {

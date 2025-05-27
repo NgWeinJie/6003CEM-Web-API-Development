@@ -1,4 +1,3 @@
-
 const firebaseApiKey = "AIzaSyDCdP64LQYeS4vu3lFH7XtUHOPVJOYCbO8";
 
 // Function to register user with Firebase Auth using REST

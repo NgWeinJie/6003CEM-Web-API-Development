@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         orders.forEach(order => {
           const orderId = order._id;
-          const trackingUrl = `http://192.168.100.15:8080/track/${order.trackingNumber}`;
+          const trackingUrl = `http://192.168.100.15:3000/track/${order.trackingNumber}`;
           const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(trackingUrl)}`;
 
           const orderCard = document.createElement('div');
@@ -33,7 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
               <p class="card-text"><strong>Remark:</strong> ${order.userRemark}</p>
               <p class="card-text"><strong>Date:</strong> ${new Date(order.timestamp).toLocaleString()}</p>
               <p class="card-text"><strong>Status:</strong> <span class="text-success font-weight-bold">${order.status}</span></p>
-              <p class="card-text"><strong>Tracking Number:</strong> ${order.trackingNumber}</p>
+              <p><strong>Tracking Number:</strong> ${order.trackingNumber}</p>
+              <img src="${qrCodeUrl}" alt="QR Code for tracking" />
               <h6 class="mt-3"><strong>Cart Items:</strong></h6>
               <div id="cart-items-${orderId}" class="cart-items-container table-responsive">
                 <table class="table">
@@ -53,8 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${order.coinsDiscount ? `<p class="card-text text-right"><strong>Redeem Coins Discount:</strong> -RM ${order.coinsDiscount.toFixed(2)}</p>` : ''}
                 <p class="card-text text-right"><strong>Shipping Fee:</strong> RM ${order.shippingFee}</p>
                 <p class="card-text text-right"><strong>Total Amount:</strong> RM ${order.totalAmount.toFixed(2)}</p>
-                <p><strong>Tracking Number:</strong> ${order.trackingNumber}</p>
-                <img src="${qrCodeUrl}" alt="QR Code for tracking" />
                 <button class="btn btn-primary reorder-all-button" data-order-id="${orderId}">Reorder All Items</button>
               </div>
             </div>
