@@ -8,6 +8,8 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://User:1234@cluster0.oro1vef.mongodb.net/webApi';
+const Stripe = require('stripe');
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 // === MONGOOSE (for orders) ===
 mongoose.connect(MONGO_URI, {
@@ -67,6 +69,59 @@ app.use('/image', express.static(path.join(__dirname, 'image')));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'html', 'home.html'));
 });
+
+// server.js or routes/payment.js
+app.post('/create-payment-intent', async (req, res) => {
+  try {
+    const { amount, currency, paymentMethodId, customerId } = req.body;
+
+    // Convert amount to smallest currency unit (e.g., cents)
+    const amountInSen = Math.round(amount * 100);
+
+    let customer = customerId;
+
+    // Create a new customer if no ID provided
+    if (!customer) {
+      const newCustomer = await stripe.customers.create();
+      customer = newCustomer.id;
+    }
+
+    // Attach payment method if not already attached
+    try {
+      await stripe.paymentMethods.attach(paymentMethodId, { customer });
+    } catch (err) {
+      if (err.code !== 'payment_method_already_attached') {
+        throw err;
+      }
+    }
+
+    // Update customer's default payment method
+    await stripe.customers.update(customer, {
+      invoice_settings: { default_payment_method: paymentMethodId },
+    });
+
+    // Create PaymentIntent but DO NOT confirm here (confirm: false)
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInSen,
+      currency,
+      customer,
+      payment_method: paymentMethodId,
+      off_session: false,
+      confirm: false,
+    });
+
+    res.json({
+      clientSecret: paymentIntent.client_secret,
+      customerId: customer,
+      paymentIntentId: paymentIntent.id,
+    });
+  } catch (error) {
+    console.error('Error creating PaymentIntent:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 
 // === ORDER APIs ===
 app.post('/api/payment', async (req, res) => {
@@ -232,6 +287,21 @@ app.post('/api/cart/reorder', async (req, res) => {
 });
 
 // === CART APIs ===
+app.get('/api/cart/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  if (!userId) return res.status(400).json({ message: 'Missing userId param' });
+
+  try {
+    const db = await connectDB();
+    const collection = db.collection(cartCollection);
+    const items = await collection.find({ userId }).toArray();
+    res.status(200).json(items);
+  } catch (error) {
+    console.error('❌ Failed to fetch cart items:', error);
+    res.status(500).json({ message: 'Failed to fetch cart items' });
+  }
+});
+
 app.get('/api/cart', async (req, res) => {
   const userId = req.query.userId;
   if (!userId) return res.status(400).json({ message: 'Missing userId query parameter' });
