@@ -113,12 +113,12 @@ async function fetchCartItems(userId) {
 
     cartItems.forEach(item => {
       const div = document.createElement('div');
-      div.classList.add('payment-item');
+      div.classList.add('payment-item'); // consistent class
       div.innerHTML = `
-        <img src="${item.productImage}" alt="${item.productName}" style="max-width: 100px; max-height: 100px;">
-        <p>Product Name: ${item.productName}</p>
-        <p>Product Price: RM ${item.productPrice.toFixed(2)}</p>
-        <p>Quantity: ${item.productQuantity}</p>
+        <img class="product-image" src="${item.productImage}" alt="${item.productName}" style="max-width: 100px; max-height: 100px;">
+        <p class="product-name">Product Name: ${item.productName}</p>
+        <p class="product-price">Product Price: RM ${item.productPrice.toFixed(2)}</p>
+        <p class="product-quantity">Quantity: ${item.productQuantity}</p>
         <br>
       `;
       container.appendChild(div);
@@ -126,7 +126,8 @@ async function fetchCartItems(userId) {
     });
 
     // Use discount if defined, else default to 0
-    const discountAmount = typeof discount === 'number' ? discount : 0;
+    const discountElem = document.getElementById('discount');
+    const discountAmount = discountElem ? parseFloat(discountElem.textContent) || 0 : 0;
     if (discountAmount > 0) totalAmount -= discountAmount;
 
     document.getElementById('shippingFee').textContent = `Shipping Fee: RM ${shippingFee.toFixed(2)}`;
@@ -138,7 +139,6 @@ async function fetchCartItems(userId) {
 
   } catch (err) {
     console.error(err);
-    // Optionally show error message on page instead of alert
     alert('Failed to load cart items.');
   }
 }
@@ -242,19 +242,15 @@ async function SendMailOtp() {
     }
     const userData = await response.json();
     const userEmail = userData.email;
-    //const userName = userData.name;
 
     if (!userEmail || userEmail.trim() === "") {
       alert("Invalid email address.");
       return;
     }
 
-    // Step 5: Generate OTP and save it in session
-    const otp = generateOTP();
-    //const otpGenerationTime = Date.now();
-    //const otpExpirationTime = otpGenerationTime + 10 * 60 * 1000; // 10 minutes
+    // // Step 5: Generate OTP and save it in session
+    // const otp = generateOTP();
 
-    // Optional DOM reads (if used in payment page)
     const userName = document.getElementById('userName')?.value || '';
     const phone = document.getElementById('userPhone')?.value || '';
     const address = document.getElementById('userAddress')?.value || '';
@@ -262,18 +258,28 @@ async function SendMailOtp() {
     const city = document.getElementById('userCity')?.value || '';
     const state = document.getElementById('userState')?.value || '';
     const remark = document.getElementById('userRemark')?.value || '';
-    const total = parseFloat(document.getElementById('totalAmount')?.textContent.split('RM')[1]?.trim()) || 0;
+    const totalText = document.getElementById('totalAmount')?.textContent || '';
+    const total = parseFloat(totalText.split('RM')[1]?.trim()) || 0;
     const userCoins = parseInt(document.getElementById('userCoins')?.textContent || '0', 10);
     const redeemSwitch = document.getElementById('redeemCoinsSwitch');
     const discount = document.getElementById('discount');
     const promoCode = document.getElementById('promoCode')?.value || '';
-    // Save cart items to localStorage before going to OTP page
-    const cartItemsWithImage = []; // Or however you originally define it
-    document.querySelectorAll('.cart-item').forEach(itemEl => {
-      const productName = itemEl.querySelector('.product-name')?.textContent;
-      const productPrice = parseFloat(itemEl.querySelector('.product-price')?.textContent.replace('RM', '').trim());
-      const productQuantity = parseInt(itemEl.querySelector('.product-quantity')?.textContent.trim());
-      const productImage = itemEl.querySelector('.product-image')?.src;
+
+    // Collect cart items from the displayed list (.payment-item)
+    const cartElements = document.querySelectorAll('.payment-item');
+    const cartItemsWithImage = [];
+
+    cartElements.forEach(itemEl => {
+      const productNameRaw = itemEl.querySelector('.product-name')?.textContent || '';
+      const productName = productNameRaw.replace('Product Name:', '').trim();
+
+      const productPriceRaw = itemEl.querySelector('.product-price')?.textContent || '';
+      const productPrice = parseFloat(productPriceRaw.replace('Product Price: RM', '').trim());
+
+      const productQuantityRaw = itemEl.querySelector('.product-quantity')?.textContent || '';
+      const productQuantity = parseInt(productQuantityRaw.replace('Quantity:', '').trim(), 10);
+
+      const productImage = itemEl.querySelector('.product-image')?.src || '';
 
       if (productName && !isNaN(productPrice) && !isNaN(productQuantity)) {
         cartItemsWithImage.push({
@@ -282,12 +288,15 @@ async function SendMailOtp() {
           productQuantity,
           productImage
         });
+      } else {
+        console.warn('Skipping invalid cart item:', { productName, productPrice, productQuantity, productImage });
       }
     });
 
-    localStorage.setItem("generatedOTP", otp);
-    // localStorage.setItem("otpGenerationTime", otpGenerationTime.toString());
-    // localStorage.setItem("otpExpirationTime", otpExpirationTime.toString());
+    console.log('Collected cart items:', cartItemsWithImage);
+
+    // Save everything to localStorage
+    // localStorage.setItem("generatedOTP", otp);
     localStorage.setItem("uid", userId);
     localStorage.setItem("userName", userName);
     localStorage.setItem("userEmail", userEmail);
@@ -300,24 +309,23 @@ async function SendMailOtp() {
     localStorage.setItem("promoCode", promoCode);
     localStorage.setItem("totalAmount", total.toString());
     localStorage.setItem("userCoins", userCoins.toString());
-    localStorage.setItem('discount', discount.textContent);
-    localStorage.setItem("redeemCoinsSwitch", redeemSwitch.checked ? "true" : "false");
+    localStorage.setItem('discount', discount?.textContent || '0');
+    localStorage.setItem("redeemCoinsSwitch", redeemSwitch?.checked ? "true" : "false");
     localStorage.setItem("cartItemsWithImage", JSON.stringify(cartItemsWithImage));
 
-    // Step 6: Prepare email template parameters
+    // Prepare email template parameters
     const templateParams = {
       from_name: userName,
       to_email: userEmail,
       otp: otp,
-      // expiration_time: new Date(otpExpirationTime).toLocaleString()
     };
 
-    // Step 7: Send the OTP via EmailJS
+    // Send the OTP via EmailJS
     const result = await emailjs.send('service_7e6jx2j', 'template_l3gma7d', templateParams);
     alert("OTP has been sent to your email.");
     console.log("Email sent:", result);
 
-    // Step 8: Redirect to OTP page
+    // Redirect to OTP page
     window.location.href = "otp.html";
 
   } catch (error) {
