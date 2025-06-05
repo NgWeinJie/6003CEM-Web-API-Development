@@ -122,7 +122,6 @@ app.post('/create-payment-intent', async (req, res) => {
 });
 
 
-
 // === ORDER APIs ===
 app.post('/api/payment', async (req, res) => {
   try {
@@ -287,21 +286,6 @@ app.post('/api/cart/reorder', async (req, res) => {
 });
 
 // === CART APIs ===
-app.get('/api/cart/:userId', async (req, res) => {
-  const userId = req.params.userId;
-  if (!userId) return res.status(400).json({ message: 'Missing userId param' });
-
-  try {
-    const db = await connectDB();
-    const collection = db.collection(cartCollection);
-    const items = await collection.find({ userId }).toArray();
-    res.status(200).json(items);
-  } catch (error) {
-    console.error('❌ Failed to fetch cart items:', error);
-    res.status(500).json({ message: 'Failed to fetch cart items' });
-  }
-});
-
 app.get('/api/cart', async (req, res) => {
   const userId = req.query.userId;
   if (!userId) return res.status(400).json({ message: 'Missing userId query parameter' });

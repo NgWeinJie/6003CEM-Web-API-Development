@@ -92,7 +92,7 @@ let cartItemsWithImage = [];
 // Fetch cart items from backend and display
 async function fetchCartItems(userId) {
   try {
-    const res = await fetch(`/api/cart/${userId}`);
+    const res = await fetch(`/api/cart?userId=${userId}`);
     if (!res.ok) throw new Error('Failed to fetch cart items');
 
     const cartItems = await res.json();
@@ -249,7 +249,7 @@ async function SendMailOtp() {
     }
 
     // // Step 5: Generate OTP and save it in session
-    // const otp = generateOTP();
+    const otp = generateOTP();
 
     const userName = document.getElementById('userName')?.value || '';
     const phone = document.getElementById('userPhone')?.value || '';
@@ -296,7 +296,7 @@ async function SendMailOtp() {
     console.log('Collected cart items:', cartItemsWithImage);
 
     // Save everything to localStorage
-    // localStorage.setItem("generatedOTP", otp);
+    localStorage.setItem("generatedOTP", otp);
     localStorage.setItem("uid", userId);
     localStorage.setItem("userName", userName);
     localStorage.setItem("userEmail", userEmail);
