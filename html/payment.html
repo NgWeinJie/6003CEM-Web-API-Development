@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cart</title>
+    <title>Payment</title>
     <!-- Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <!-- Custom CSS -->
-    <link href="css/cart.css" rel="stylesheet">
+    <link href="css/payment.css" rel="stylesheet">
 </head>
 <body>
 <!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <a class="navbar-brand" href="home.html">Home</a>
+    <a class="navbar-brand" href="/home.html">Home</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
@@ -39,41 +39,94 @@
                     <a class="dropdown-item" href="#Sundry">Sundry</a>
                 </div>
             <li class="nav-item">
-                <a class="nav-link" href="about_us.html">About Us</a>
+                <a class="nav-link" href="/about_us.html">About Us</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="orderHistory.html">Order History</a>
+                <a class="nav-link" href="/orderHistory.html">Order History</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="coins_rewards.html">Coins Rewards</a>
+                <a class="nav-link" href="/profile.html">Profile</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="profile.html">Profile</a>
+                <a class="nav-link" href="/coins_rewards.html">Coins Rewards</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="contact_us.html">Contact Us</a>
+                <a class="nav-link" href="/contact_us.html">Contact Us</a>
             </li>
         </ul>
         <ul class="navbar-nav">
             <li class="nav-item">
-                <a class="nav-link" href="cart.html"><i class="fas fa-shopping-cart"></i> Add to Cart</a>
+                <a class="nav-link" href="/cart.html"><i class="fas fa-shopping-cart"></i> Add to Cart</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="login.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                <a class="nav-link" href="/login.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </li>
         </ul>
     </div>
 </nav>
 
-    <div id="cartItems" class="content-container mt-5"></div>
-
-    <div id="totalPriceContainer" class="mt-3">
+    <div class="container mt-5 payment-container">
         <div class="row">
-            <div class="col-md-12 text-right">
-                <label for="promoCode">Promo Code:</label>
-                <input type="text" id="promoCode" class="form-control mb-3 d-inline-block" placeholder="">
-                <h4>Total Price: <span id="totalPrice">RM 0.00</span></h4>
-                <button id="proceedToPaymentBtn" class="btn btn-success">Proceed to Payment</button>
+            <div class="col-md-8 offset-md-2">
+                <h2>User Details</h2>
+                <div id="userDetails" class="mt-3">
+                    <form id="userDetailsForm">
+                        <div class="form-group">
+                            <label for="userName">Name</label>
+                            <input type="text" class="form-control" id="userName" placeholder="Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="userPhone">Phone</label>
+                            <input type="text" class="form-control" id="userPhone" placeholder="Phone Number">
+                        </div>
+                        <div class="form-group">
+                            <label for="userAddress">Address</label>
+                            <textarea class="form-control" id="userAddress" placeholder="Address" rows="4"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="userPostcode">Postcode</label>
+                            <input type="text" class="form-control" id="userPostcode" placeholder="Postcode">
+                        </div>
+                        <div class="form-group">
+                            <label for="userCity">City</label>
+                            <input type="text" class="form-control" id="userCity" placeholder="City">
+                        </div>
+                        <div class="form-group">
+                            <label for="userState">State</label>
+                            <input type="text" class="form-control" id="userState" placeholder="State">
+                        </div>
+                        <div class="form-group">
+                            <label for="userAddress">Remark</label>
+                            <textarea class="form-control" id="userRemark" rows="4"></textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5 payment-section">
+            <div class="col-md-8">
+                <h1>Payment</h1>
+                <div id="paymentItems" class="mt-3"></div>
+                <div id="coinsSection">
+                    <p>Redeem Dry Foodies Coins: <span id="userCoins">0</span>
+                        <i class="fas fa-coins gold"></i> <!-- Font Awesome coin icon -->
+                        <label class="switch">
+                            <input type="checkbox" id="redeemCoinsSwitch" onchange="updateTotalAmount()">
+                            <span class="slider round"></span>
+                        </label>
+                    </p>
+                </div>
+                  
+                <h5 id="promoDiscount" class="mt-3"></h5>
+                <h5 id="coinsDiscount" class="mt-3"></h5>
+                <h5 id="shippingFee" class="mt-3 ml-2"></h5>         
+                <h3 id="totalAmount" class="mt-3 ml-2"></h3>
+                <button id="backToCartBtn" class="btn btn-secondary mt-3 ml-2">Back to Cart</button>
+                <button id="doneBtn" class="btn btn-success mt-3 ml-3">Done</button> 
+            </div>
+            <div class="col-md-4 d-flex align-items-center justify-content-center qr-payment-container">
+                <img src="image/qr_payment.jpg" class="logo img-fluid" alt="QR Payment">
             </div>
         </div>
     </div>
@@ -84,10 +137,9 @@
             <div class="row">
                 <div class="col-md-4">
                     <h5>FAQ</h5>
-                    <p>Don't understand or have any problems, click<span class="footer-link"><a href="facts_questions.html">HERE</a></span></p>
+                    <p>Don't understand or have any problems, click<span class="footer-link"><a href="/facts_questions.html">HERE</a></span></p>
                     <h5>Terms & Conditions</h5>
-                    <p>Review the terms & conditions, click<span class="footer-link"><a href="terms_conditions.html">HERE</a></span></p>
-
+                    <p>Review the terms & conditions, click<span class="footer-link"><a href="/terms_conditions.html">HERE</a></span></p>
                 </div>
                 <div class="col-md-4">
                     <h5>Contact Us</h5>
@@ -120,19 +172,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <!-- Bootstrap JavaScript -->
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="js/cart.js"></script>
-    <script>
-        function toggleAnswer(question) {
-            // Hide all answers
-            var allAnswers = document.querySelectorAll('.answer');
-            allAnswers.forEach(function(answer) {
-                answer.classList.remove('show');
-            });
-
-            // Toggle the 'show' class on the next sibling element of the clicked question
-            question.nextElementSibling.classList.toggle('show');
-        }
-    </script>
+    <script src="js/payment.js"></script>
 
 </body>
 </html>
