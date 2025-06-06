@@ -1,3 +1,29 @@
+const stripe = Stripe('pk_test_51RSxGMPBTfKCtpdh8bdgV3pCyK9MHBSRaR1lJtBAjrMTKn7km5YlyGOUfCzMUtGdqBPq8mr5d4lpuVSKO7zNIRd500LbK3sash');
+const elements = stripe.elements();
+
+(function () {
+  emailjs.init("9R5K8FyRub386RIu8");
+})();
+
+function openTab(evt, tabName) {
+  const tabcontent = document.getElementsByClassName("tabcontent");
+  for (let i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+
+  const tablinks = document.getElementsByClassName("tablinks");
+  for (let i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+
+  document.getElementById(tabName).style.display = "block";
+  evt.currentTarget.className += " active";
+}
+
+window.onload = function () {
+  document.querySelector(".tablinks").click();
+};
+
 // Utility to get URL parameters
 function getUrlParameter(name) {
   name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
@@ -68,30 +94,41 @@ async function fetchCartItems(userId) {
   try {
     const res = await fetch(`/api/cart?userId=${userId}`);
     if (!res.ok) throw new Error('Failed to fetch cart items');
+
     const cartItems = await res.json();
-    cartItemsWithImage = cartItems; // save full cart for order processing
+    cartItemsWithImage = cartItems; // save full cart for order processing (assuming global)
 
     const container = document.getElementById('paymentItems');
-    container.innerHTML = '';
+    container.innerHTML = '';  // clear container
+
+    if (cartItems.length === 0) {
+      container.textContent = 'Your cart is empty.';
+      document.getElementById('shippingFee').textContent = '';
+      document.getElementById('totalAmount').textContent = '';
+      return;
+    }
 
     let totalAmount = 0;
     const shippingFee = 10.00;
 
     cartItems.forEach(item => {
       const div = document.createElement('div');
-      div.classList.add('payment-item');
+      div.classList.add('payment-item'); // consistent class
       div.innerHTML = `
-        <img src="${item.productImage}" alt="${item.productName}" style="max-width: 100px; max-height: 100px;">
-        <p>Product Name: ${item.productName}</p>
-        <p>Product Price: RM ${item.productPrice.toFixed(2)}</p>
-        <p>Quantity: ${item.productQuantity}</p>
+        <img class="product-image" src="${item.productImage}" alt="${item.productName}" style="max-width: 100px; max-height: 100px;">
+        <p class="product-name">Product Name: ${item.productName}</p>
+        <p class="product-price">Product Price: RM ${item.productPrice.toFixed(2)}</p>
+        <p class="product-quantity">Quantity: ${item.productQuantity}</p>
         <br>
       `;
       container.appendChild(div);
       totalAmount += item.productPrice * item.productQuantity;
     });
 
-    if (discount > 0) totalAmount -= discount;
+    // Use discount if defined, else default to 0
+    const discountElem = document.getElementById('discount');
+    const discountAmount = discountElem ? parseFloat(discountElem.textContent) || 0 : 0;
+    if (discountAmount > 0) totalAmount -= discountAmount;
 
     document.getElementById('shippingFee').textContent = `Shipping Fee: RM ${shippingFee.toFixed(2)}`;
 
@@ -104,6 +141,208 @@ async function fetchCartItems(userId) {
     console.error(err);
     alert('Failed to load cart items.');
   }
+}
+
+const cardNumberElement = elements.create('cardNumber');
+cardNumberElement.mount('#card-number-element');
+
+const cardExpiryElement = elements.create('cardExpiry');
+cardExpiryElement.mount('#card-expiry-element');
+
+const cardCvcElement = elements.create('cardCvc');
+cardCvcElement.mount('#card-cvc-element');
+
+async function validateCardDetails() {
+  const cardHolderName = document.getElementById('cardHolder').value.trim();
+
+  const { error: cardNumberError, paymentMethod } = await stripe.createPaymentMethod({
+    type: 'card',
+    card: cardNumberElement,
+    billing_details: {
+      name: cardHolderName,
+    },
+  });
+
+  const { error: cardExpiryError } = await stripe.createPaymentMethod({
+    type: 'card',
+    card: cardExpiryElement,
+    billing_details: {
+      name: cardHolderName,
+    },
+  });
+
+  const { error: cardCvcError } = await stripe.createPaymentMethod({
+    type: 'card',
+    card: cardCvcElement,
+    billing_details: {
+      name: cardHolderName,
+    },
+  });
+
+  if (!cardNumberElement || !cardCvcElement || !cardExpiryElement || !cardHolderName) {
+    window.alert(`Please fill in all credit card detials.`)
+    return false;
+  }
+
+  if (cardNumberError) {
+    window.alert(`Card Number Error: ${cardNumberError.message}`);
+    return false;
+  }
+
+  if (cardExpiryError) {
+    window.alert(`Card Expiry Error: ${cardExpiryError.message}`);
+    return false;
+  }
+
+  if (cardCvcError) {
+    window.alert(`Card CVC Error: ${cardCvcError.message}`);
+    return false;
+  }
+
+  const paymentDetails = {
+    cardHolderName: cardHolderName,
+    paymentMethodId: paymentMethod.id,
+  };
+  localStorage.setItem('paymentDetails', JSON.stringify(paymentDetails));
+
+  console.log("Payment details stored in session:", paymentDetails);
+
+  return true;
+}
+
+function generateOTP() {
+  let otpNumber = Math.floor(100000 + Math.random() * 900000);
+  return otpNumber.toString();
+}
+
+document.getElementById("payment").addEventListener("click", function (e) {
+  e.preventDefault();
+  SendMailOtp();
+});
+
+
+async function SendMailOtp() {
+  try {
+    // Step 1: Validate card details before continuing
+    const isCardValid = await validateCardDetails();
+    if (!isCardValid) return;
+
+    // Step 2: Handle resend attempts session tracking
+    if (!localStorage.getItem('resendAttempts')) {
+      localStorage.setItem('resendAttempts', '1');
+    }
+
+    const userId = getCurrentUserId();
+
+    // Step 4: Fetch user from your MongoDB backend
+    const response = await fetch(`/api/users/${userId}`);
+    if (!response.ok) {
+      alert("User not found.");
+      return;
+    }
+    const userData = await response.json();
+    const userEmail = userData.email;
+
+    if (!userEmail || userEmail.trim() === "") {
+      alert("Invalid email address.");
+      return;
+    }
+
+    // // Step 5: Generate OTP and save it in session
+    const otp = generateOTP();
+
+    const userName = document.getElementById('userName')?.value || '';
+    const phone = document.getElementById('userPhone')?.value || '';
+    const address = document.getElementById('userAddress')?.value || '';
+    const postcode = document.getElementById('userPostcode')?.value || '';
+    const city = document.getElementById('userCity')?.value || '';
+    const state = document.getElementById('userState')?.value || '';
+    const remark = document.getElementById('userRemark')?.value || '';
+    const totalText = document.getElementById('totalAmount')?.textContent || '';
+    const total = parseFloat(totalText.split('RM')[1]?.trim()) || 0;
+    const userCoins = parseInt(document.getElementById('userCoins')?.textContent || '0', 10);
+    const redeemSwitch = document.getElementById('redeemCoinsSwitch');
+    const discount = document.getElementById('discount');
+    const promoCode = document.getElementById('promoCode')?.value || '';
+
+    // Collect cart items from the displayed list (.payment-item)
+    const cartElements = document.querySelectorAll('.payment-item');
+    const cartItemsWithImage = [];
+
+    cartElements.forEach(itemEl => {
+      const productNameRaw = itemEl.querySelector('.product-name')?.textContent || '';
+      const productName = productNameRaw.replace('Product Name:', '').trim();
+
+      const productPriceRaw = itemEl.querySelector('.product-price')?.textContent || '';
+      const productPrice = parseFloat(productPriceRaw.replace('Product Price: RM', '').trim());
+
+      const productQuantityRaw = itemEl.querySelector('.product-quantity')?.textContent || '';
+      const productQuantity = parseInt(productQuantityRaw.replace('Quantity:', '').trim(), 10);
+
+      const productImage = itemEl.querySelector('.product-image')?.src || '';
+
+      if (productName && !isNaN(productPrice) && !isNaN(productQuantity)) {
+        cartItemsWithImage.push({
+          productName,
+          productPrice,
+          productQuantity,
+          productImage
+        });
+      } else {
+        console.warn('Skipping invalid cart item:', { productName, productPrice, productQuantity, productImage });
+      }
+    });
+
+    console.log('Collected cart items:', cartItemsWithImage);
+
+    // Save everything to localStorage
+    localStorage.setItem("generatedOTP", otp);
+    localStorage.setItem("uid", userId);
+    localStorage.setItem("userName", userName);
+    localStorage.setItem("userEmail", userEmail);
+    localStorage.setItem("userPhone", phone);
+    localStorage.setItem("userAddress", address);
+    localStorage.setItem("userPostcode", postcode);
+    localStorage.setItem("userCity", city);
+    localStorage.setItem("userState", state);
+    localStorage.setItem("userRemark", remark);
+    localStorage.setItem("promoCode", promoCode);
+    localStorage.setItem("totalAmount", total.toString());
+    localStorage.setItem("userCoins", userCoins.toString());
+    localStorage.setItem('discount', discount?.textContent || '0');
+    localStorage.setItem("redeemCoinsSwitch", redeemSwitch?.checked ? "true" : "false");
+    localStorage.setItem("cartItemsWithImage", JSON.stringify(cartItemsWithImage));
+
+    // Prepare email template parameters
+    const templateParams = {
+      from_name: userName,
+      to_email: userEmail,
+      otp: otp,
+    };
+
+    // Send the OTP via EmailJS
+    const result = await emailjs.send('service_7e6jx2j', 'template_l3gma7d', templateParams);
+    alert("OTP has been sent to your email.");
+    console.log("Email sent:", result);
+
+    // Redirect to OTP page
+    window.location.href = "otp.html";
+
+  } catch (error) {
+    console.error("Error in SendMailOtp:", error);
+    alert("Something went wrong. Please try again.");
+  }
+}
+
+function getCurrentUserId() {
+  const userId = localStorage.getItem('uid');
+
+  if (!userId) {
+    alert('Please log in to view your order history.');
+    window.location.href = 'login.html';
+    return;
+  }
+  return userId;
 }
 
 // Update total amount when redeem coins switch toggled
@@ -131,132 +370,132 @@ function updateTotalAmount() {
   document.getElementById('coinsDiscount').textContent = redeemSwitch.checked ? `Coins Discount: RM ${coinsDiscount.toFixed(2)}` : '';
 }
 
-// Generate random tracking number
-function generateTrackingNumber() {
-  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let trackingNumber = '';
-  for (let i = 0; i < 10; i++) {
-    trackingNumber += charset.charAt(Math.floor(Math.random() * charset.length));
-  }
-  return trackingNumber;
-}
+// // Generate random tracking number
+// function generateTrackingNumber() {
+//   const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+//   let trackingNumber = '';
+//   for (let i = 0; i < 10; i++) {
+//     trackingNumber += charset.charAt(Math.floor(Math.random() * charset.length));
+//   }
+//   return trackingNumber;
+// }
 
-// Delete all cart items for the current user
-async function deleteCartItems(userId) {
-  try {
-    const res = await fetch(`/api/cart/clear?userId=${userId}`, {
-      method: 'DELETE'
-    });
-    
-    if (!res.ok) throw new Error('Failed to clear cart');
-    
-    console.log('Cart items deleted successfully');
-    return true;
-  } catch (err) {
-    console.error('Error deleting cart items:', err);
-    return false;
-  }
-}
+// // Delete all cart items for the current user
+// async function deleteCartItems(userId) {
+//   try {
+//     const res = await fetch(`/api/cart/clear?userId=${userId}`, {
+//       method: 'DELETE'
+//     });
 
-// Update user's points - add earned points and deduct redeemed points
-async function updateUserPoints(userId, pointsEarned, pointsRedeemed) {
-  try {
-    const res = await fetch(`/api/users/${userId}/points`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pointsEarned,
-        pointsRedeemed
-      })
-    });
-    
-    if (!res.ok) throw new Error('Failed to update user points');
-    
-    console.log('User points updated successfully');
-    return true;
-  } catch (err) {
-    console.error('Error updating user points:', err);
-    return false;
-  }
-}
+//     if (!res.ok) throw new Error('Failed to clear cart');
 
-// Save order to backend
-async function saveOrder() {
-  const userName = document.getElementById('userName').value;
-  const userPhone = document.getElementById('userPhone').value;
-  const userAddress = document.getElementById('userAddress').value;
-  const userPostcode = document.getElementById('userPostcode').value;
-  const userCity = document.getElementById('userCity').value;
-  const userState = document.getElementById('userState').value;
-  const userRemark = document.getElementById('userRemark').value;
+//     console.log('Cart items deleted successfully');
+//     return true;
+//   } catch (err) {
+//     console.error('Error deleting cart items:', err);
+//     return false;
+//   }
+// }
 
-  const totalAmountText = document.getElementById('totalAmount').textContent;
-  const totalAmount = parseFloat(totalAmountText.split('RM')[1].trim());
-  if (isNaN(totalAmount)) {
-    alert('Invalid total amount.');
-    return;
-  }
+// // Update user's points - add earned points and deduct redeemed points
+// async function updateUserPoints(userId, pointsEarned, pointsRedeemed) {
+//   try {
+//     const res = await fetch(`/api/users/${userId}/points`, {
+//       method: 'PATCH',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({
+//         pointsEarned,
+//         pointsRedeemed
+//       })
+//     });
 
-  const redeemSwitch = document.getElementById('redeemCoinsSwitch');
-  const userCoins = parseInt(document.getElementById('userCoins').textContent);
-  const coinsDiscount = redeemSwitch.checked ? userCoins * 0.01 : 0;
-  const pointsRedeemed = redeemSwitch.checked ? userCoins : 0;
+//     if (!res.ok) throw new Error('Failed to update user points');
 
-  const pointsEarned = Math.floor(totalAmount);
-  const trackingNumber = generateTrackingNumber();
+//     console.log('User points updated successfully');
+//     return true;
+//   } catch (err) {
+//     console.error('Error updating user points:', err);
+//     return false;
+//   }
+// }
 
-  const cartItems = cartItemsWithImage.map(item => ({
-    productName: item.productName,
-    productPrice: item.productPrice,
-    productQuantity: item.productQuantity,
-    productImage: Array.isArray(item.productImage) ? item.productImage[0] : item.productImage
-  }));
+// // Save order to backend
+// async function saveOrder() {
+//   const userName = document.getElementById('userName').value;
+//   const userPhone = document.getElementById('userPhone').value;
+//   const userAddress = document.getElementById('userAddress').value;
+//   const userPostcode = document.getElementById('userPostcode').value;
+//   const userCity = document.getElementById('userCity').value;
+//   const userState = document.getElementById('userState').value;
+//   const userRemark = document.getElementById('userRemark').value;
 
-  const order = {
-    userId: currentUser.id,
-    userName,
-    userPhone,
-    userAddress,
-    userPostcode,
-    userCity,
-    userState,
-    userRemark,
-    cartItems,
-    totalAmount,
-    shippingFee: 10.00,
-    status: "Order Received",
-    trackingNumber,
-    promoCode: promoCode || '',
-    discount: discount || 0,
-    coinsDiscount,
-    pointsEarned,
-    pointsRedeemed
-  };
+//   const totalAmountText = document.getElementById('totalAmount').textContent;
+//   const totalAmount = parseFloat(totalAmountText.split('RM')[1].trim());
+//   if (isNaN(totalAmount)) {
+//     alert('Invalid total amount.');
+//     return;
+//   }
 
-  try {
-    const res = await fetch('/api/payment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order),
-    });
-    
-    if (!res.ok) throw new Error('Failed to place order');
-    const data = await res.json();
+//   const redeemSwitch = document.getElementById('redeemCoinsSwitch');
+//   const userCoins = parseInt(document.getElementById('userCoins').textContent);
+//   const coinsDiscount = redeemSwitch.checked ? userCoins * 0.01 : 0;
+//   const pointsRedeemed = redeemSwitch.checked ? userCoins : 0;
 
-    await updateUserPoints(currentUser.id, pointsEarned, pointsRedeemed);
-    await deleteCartItems(currentUser.id);
+//   const pointsEarned = Math.floor(totalAmount);
+//   const trackingNumber = generateTrackingNumber();
 
-    alert(`Payment successful! Tracking number: ${data.trackingNumber}. Points earned: ${data.pointsEarned}`);
-    window.location.href = 'home.html';
-  } catch (err) {
-    console.error(err);
-    alert('Failed to place order. Please try again.');
-  }
-}
+//   const cartItems = cartItemsWithImage.map(item => ({
+//     productName: item.productName,
+//     productPrice: item.productPrice,
+//     productQuantity: item.productQuantity,
+//     productImage: Array.isArray(item.productImage) ? item.productImage[0] : item.productImage
+//   }));
+
+//   const order = {
+//     userId: currentUser.id,
+//     userName,
+//     userPhone,
+//     userAddress,
+//     userPostcode,
+//     userCity,
+//     userState,
+//     userRemark,
+//     cartItems,
+//     totalAmount,
+//     shippingFee: 10.00,
+//     status: "Order Received",
+//     trackingNumber,
+//     promoCode: promoCode || '',
+//     discount: discount || 0,
+//     coinsDiscount,
+//     pointsEarned,
+//     pointsRedeemed
+//   };
+
+//   try {
+//     const res = await fetch('/api/payment', {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify(order),
+//     });
+
+//     if (!res.ok) throw new Error('Failed to place order');
+//     const data = await res.json();
+
+//     await updateUserPoints(currentUser.id, pointsEarned, pointsRedeemed);
+//     await deleteCartItems(currentUser.id);
+
+//     alert(`Payment successful! Tracking number: ${data.trackingNumber}. Points earned: ${data.pointsEarned}`);
+//     window.location.href = 'home.html';
+//   } catch (err) {
+//     console.error(err);
+//     alert('Failed to place order. Please try again.');
+//   }
+// }
 
 // Event listeners
 document.getElementById('redeemCoinsSwitch').addEventListener('change', updateTotalAmount);
-document.getElementById('doneBtn').addEventListener('click', saveOrder);
+// document.getElementById('doneBtn').addEventListener('click', saveOrder);
 document.getElementById('backToCartBtn').addEventListener('click', () => window.location.href = 'cart.html');
 
 // Initial fetch of user data and cart
