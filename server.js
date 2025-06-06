@@ -3,6 +3,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const { MongoClient, ObjectId } = require('mongodb');
 const cors = require('cors');
+const axios = require('axios');
 require('dotenv').config();
 
 const app = express();
@@ -320,6 +321,42 @@ app.post('/api/register', async (req, res) => {
     await client.close();
   }
 });
+
+// === CART RECOMMENDATION API ===
+app.get('/api/cart/recommendation', async (req, res) => {
+  const userId = req.query.userId;
+  if (!userId) {
+    return res.status(400).json({ message: 'User ID is required' });
+  }
+
+  try {
+    const db = await connectDB();
+    const cartItems = await db.collection(cartCollection).find({ userId }).toArray();
+
+    if (cartItems.length === 0) {
+      return res.status(404).json({ message: 'No items in cart to base recommendations on.' });
+    }
+
+    const keywords = cartItems.map(item => item.productName.split(' ')[0]); // Get first word of each product name
+    const searchQuery = keywords[Math.floor(Math.random() * keywords.length)];
+
+    // Fetch recommendation from DummyJSON
+    const response = await axios.get(`https://dummyjson.com/products/search?q=${searchQuery}`);
+    const results = response.data.products;
+
+    if (results.length > 0) {
+      const randomRecommendation = results[Math.floor(Math.random() * results.length)];
+      return res.json({ recommendation: randomRecommendation });
+    } else {
+      return res.status(404).json({ message: 'No recommendations found based on your cart items.' });
+    }
+  } catch (err) {
+    console.error('❌ Error in recommendation API:', err);
+    res.status(500).json({ message: 'Internal server error while fetching recommendations.' });
+  }
+});
+
+
 
 // === START SERVER ===
 app.listen(PORT, () => {
