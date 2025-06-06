@@ -107,6 +107,26 @@
         <div class="row mt-5 payment-section">
             <div class="col-md-8">
                 <h1>Payment</h1>
+                 <h2 class="text-center py-5">Credit Card Details</h2>
+                        <div class="form-group">
+                            <label for="cardNumber">Card Number</label>
+                            <div id="card-number-element" class="form-control"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="expiryDate">Expiry Date</label>
+                            <div id="card-expiry-element" class="form-control"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cvv">CVV</label>
+                            <div id="card-cvc-element" class="form-control"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cardHolder">Cardholder Name</label>
+                            <input type="text" id="cardHolder" name="cardHolder" class="form-control" required>
+                        </div>
                 <div id="paymentItems" class="mt-3"></div>
                 <div id="coinsSection">
                     <p>Redeem Dry Foodies Coins: <span id="userCoins">0</span>
@@ -124,6 +144,7 @@
                 <h3 id="totalAmount" class="mt-3 ml-2"></h3>
                 <button id="backToCartBtn" class="btn btn-secondary mt-3 ml-2">Back to Cart</button>
                 <button id="doneBtn" class="btn btn-success mt-3 ml-3">Done</button> 
+                 <button id="payment">Pay Now</button>
             </div>
             <div class="col-md-4 d-flex align-items-center justify-content-center qr-payment-container">
                 <img src="image/qr_payment.jpg" class="logo img-fluid" alt="QR Payment">
@@ -158,6 +179,8 @@
         </div>
     </footer>
 
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+     <script src="https://js.stripe.com/v3/"></script>
     <!-- Bootstrap JS (with jQuery) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Firebase App (the core Firebase SDK) -->
