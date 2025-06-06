@@ -16,8 +16,8 @@ mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('✅ Connected to MongoDB (Mongoose)'))
-.catch(err => console.error('❌ Mongoose connection error:', err));
+  .then(() => console.log('✅ Connected to MongoDB (Mongoose)'))
+  .catch(err => console.error('❌ Mongoose connection error:', err));
 
 // Order Schema (Mongoose)
 const orderSchema = new mongoose.Schema({
@@ -41,6 +41,22 @@ const orderSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 });
 const Order = mongoose.model('Order', orderSchema);
+
+const userSchema = new mongoose.Schema({
+  firebaseUid: { type: String, unique: true, required: true },  // your UID from Firebase
+  email: { type: String, required: true },
+  firstName: String,
+  lastName: String,
+  address: String,
+  phoneNumber: String,
+  postcode: String,
+  city: String,
+  state: String,
+  points: { type: Number, default: 0 }
+}, { timestamps: true });
+
+const User = mongoose.model('User', userSchema);
+
 
 // === NATIVE MONGODB CLIENT (for cart, users, etc.) ===
 const client = new MongoClient(MONGO_URI);
@@ -190,35 +206,62 @@ app.get('/api/users/:userId', async (req, res) => {
   }
 });
 
+app.put('/api/users/:uid', async (req, res) => {
+  const uid = req.params.uid;
+  const updatedData = req.body; // Contains fields like email, address, phoneNumber, etc.
+
+  try {
+    await client.connect();
+    const db = client.db(dbName);
+    const users = db.collection('users');
+
+    const result = await users.updateOne(
+      { uid: uid }, // Filter by user UID
+      { $set: updatedData } // Update the fields sent in request body
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'User updated successfully' });
+  } catch (error) {
+    console.error('❌ Error updating user:', error);
+    res.status(500).json({ message: 'Failed to update user', error: error.message });
+  } finally {
+    await client.close();
+  }
+});
+
 // === USER POINTS API ===
 app.patch('/api/users/:userId/points', async (req, res) => {
   const userId = req.params.userId;
   const { pointsEarned, pointsRedeemed } = req.body;
-  
+
   if (!userId) {
     return res.status(400).json({ message: 'User ID is required' });
   }
-  
+
   try {
     const db = await connectDB();
     const user = await db.collection('users').findOne({ uid: userId });
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     // Calculate the new points balance
     const currentPoints = user.points || 0;
     const newPoints = currentPoints + (pointsEarned || 0) - (pointsRedeemed || 0);
-    
+
     // Update the user's points
     const result = await db.collection('users').updateOne(
       { uid: userId },
       { $set: { points: newPoints } }
     );
-    
+
     if (result.modifiedCount === 1) {
-      res.status(200).json({ 
+      res.status(200).json({
         message: 'User points updated successfully',
         previousPoints: currentPoints,
         earned: pointsEarned || 0,
@@ -228,6 +271,7 @@ app.patch('/api/users/:userId/points', async (req, res) => {
     } else {
       res.status(500).json({ message: 'Failed to update user points' });
     }
+
   } catch (error) {
     console.error('❌ Error updating user points:', error);
     res.status(500).json({ message: 'Failed to update user points' });
@@ -237,16 +281,16 @@ app.patch('/api/users/:userId/points', async (req, res) => {
 // === CLEAR CART API ===
 app.delete('/api/cart/clear', async (req, res) => {
   const userId = req.query.userId;
-  
+
   if (!userId) {
     return res.status(400).json({ message: 'User ID is required' });
   }
-  
+
   try {
     const db = await connectDB();
     const result = await db.collection(cartCollection).deleteMany({ userId });
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       message: 'Cart cleared successfully',
       itemsDeleted: result.deletedCount
     });
