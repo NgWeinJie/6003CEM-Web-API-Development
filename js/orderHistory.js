@@ -19,8 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         orders.forEach(order => {
           const orderId = order._id;
-          const trackingUrl = `http://192.168.100.15:8080/track/${order.trackingNumber}`;
-          const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(trackingUrl)}`;
+          // const trackingUrl = `http://192.168.100.15:8080/track/${order.trackingNumber}`;
+          // const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(trackingUrl)}`;
 
           const orderCard = document.createElement('div');
           orderCard.classList.add('card', 'order-card');
@@ -53,13 +53,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${order.coinsDiscount ? `<p class="card-text text-right"><strong>Redeem Coins Discount:</strong> -RM ${order.coinsDiscount.toFixed(2)}</p>` : ''}
                 <p class="card-text text-right"><strong>Shipping Fee:</strong> RM ${order.shippingFee}</p>
                 <p class="card-text text-right"><strong>Total Amount:</strong> RM ${order.totalAmount.toFixed(2)}</p>
-                <p><strong>Tracking Number:</strong> ${order.trackingNumber}</p>
-                <img src="${qrCodeUrl}" alt="QR Code for tracking" />
+            
                 <button class="btn btn-primary reorder-all-button" data-order-id="${orderId}">Reorder All Items</button>
               </div>
             </div>
           `;
-
+          // <p><strong>Tracking Number:</strong> ${order.trackingNumber}</p>
+          // <img src="${qrCodeUrl}" alt="QR Code for tracking" />
           orderHistoryContainer.appendChild(orderCard);
 
           const cartItemsTableBody = document.querySelector(`#cart-items-${orderId} tbody`);

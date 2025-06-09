@@ -139,29 +139,29 @@ app.post('/create-payment-intent', async (req, res) => {
 
 
 // === ORDER APIs ===
-app.post('/api/payment', async (req, res) => {
-  try {
-    const orderData = req.body;
-    const serverIp = process.env.SERVER_IP || '127.0.0.1';
-    const trackingUrl = `http://${serverIp}:${PORT}/track/${orderData.trackingNumber}`;
-    orderData.trackingUrl = trackingUrl;
+// app.post('/api/payment', async (req, res) => {
+//   try {
+//     const orderData = req.body;
+//     const serverIp = process.env.SERVER_IP || '127.0.0.1';
+//     const trackingUrl = `http://${serverIp}:${PORT}/track/${orderData.trackingNumber}`;
+//     orderData.trackingUrl = trackingUrl;
 
-    const order = new Order(orderData);
-    await order.save();
+//     const order = new Order(orderData);
+//     await order.save();
 
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(trackingUrl)}`;
+//     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(trackingUrl)}`;
 
-    res.status(201).json({
-      message: 'Order saved',
-      trackingNumber: order.trackingNumber,
-      pointsEarned: order.pointsEarned,
-      qrCodeUrl,
-    });
-  } catch (error) {
-    console.error('❌ Error saving order:', error);
-    res.status(500).json({ error: 'Failed to save order' });
-  }
-});
+//     res.status(201).json({
+//       message: 'Order saved',
+//       trackingNumber: order.trackingNumber,
+//       pointsEarned: order.pointsEarned,
+//       qrCodeUrl,
+//     });
+//   } catch (error) {
+//     console.error('❌ Error saving order:', error);
+//     res.status(500).json({ error: 'Failed to save order' });
+//   }
+// });
 
 app.get('/api/orders', async (req, res) => {
   try {

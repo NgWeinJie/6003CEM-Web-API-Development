@@ -1,0 +1,17 @@
+body {
+    background-color: #F8F8F8 !important;
+}
+
+.btn.btn-primary {
+    background-color: #734d26 !important;
+    border: none !important;
+}
+
+.btn.btn-primary:hover {
+    background-color: #ac7339 !important;
+    border: none !important;
+}
+
+.resend-otp-link{
+    color: #734d26;
+}
