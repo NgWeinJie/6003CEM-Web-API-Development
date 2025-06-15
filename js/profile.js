@@ -1,38 +1,22 @@
-// Assuming you already have Firebase initialized and user authenticated
-const firebaseConfig = {
-    apiKey: "AIzaSyDCdP64LQYeS4vu3lFH7XtUHOPVJOYCbO8",
-    authDomain: "enterprise-project-3448b.firebaseapp.com",
-    databaseURL: "https://enterprise-project-3448b-default-rtdb.firebaseio.com",
-    projectId: "enterprise-project-3448b",
-    storageBucket: "enterprise-project-3448b.appspot.com",
-    messagingSenderId: "1042464271522",
-    appId: "1:1042464271522:web:1d1a3ffadf6830b5767bfb",
-    measurementId: "G-3S19G51X7T"
-};
-
-// Initialize Firebase app
-firebase.initializeApp(firebaseConfig);
-
 // Function to fetch user data from Firestore
-const fetchUserData = (userId) => {
-    firebase.firestore().collection('users').doc(userId).get()
-    .then((doc) => {
-        if (doc.exists) {
-            const userData = doc.data();
-            // Display user data on the profile page
-            displayUserData(userData);
-            // Display user data in the edit profile modal form
-            displayUserDetailsInForm(userData);
-            // Display coins balance
-            displayCoinsBalance(userData.points || 0); 
-        } else {
-            console.log('No such document!');
-        }
-    })
-    .catch((error) => {
-        console.error('Error getting user data:', error);
-    });
+// Example: Fetch user data from your API and display it
+
+const fetchAndDisplayUser = async (userId) => {
+    try {
+        const response = await fetch(`/api/users/${userId}`);
+        if (!response.ok) throw new Error('User not found or fetch failed');
+        const userData = await response.json();
+
+        // Display user details in the modal form inputs
+        displayUserDetailsInForm(userData);
+
+        // Display user data on the profile page
+        displayUserData(userData);
+    } catch (error) {
+        console.error('Error fetching and displaying user:', error);
+    }
 };
+
 
 // Function to display user data on the modal form
 const displayUserDetailsInForm = (userData) => {
@@ -58,7 +42,7 @@ const displayUserData = (userData) => {
     if (userNameElement && userEmailElement && userAddressElement &&
         userPhoneElement && userPostcodeElement && userCityElement &&
         userStateElement && coinsBalanceElement) {
-        
+
         userNameElement.textContent = `${userData.firstName} ${userData.lastName}`;
         userEmailElement.textContent = userData.email;
         userAddressElement.textContent = userData.address;
@@ -70,53 +54,52 @@ const displayUserData = (userData) => {
     }
 };
 
-// Function to update user data in Firestore
-const updateUserProfile = (userId, newData) => {
-    firebase.firestore().collection('users').doc(userId).update(newData)
-    .then(() => {
-        console.log('User data updated successfully');
-        // Fetch and display updated user data
-        fetchUserData(userId);
-        // Close the edit profile modal
-        $('#editProfileModal').modal('hide');
-    })
-    .catch((error) => {
-        console.error('Error updating user data:', error);
-    });
-};
-
-// Event listener for form submission
-document.getElementById('editProfileFormModal').addEventListener('submit', (event) => {
-    event.preventDefault(); // Prevent the default form submission
-
-    // Get the user ID
-    const user = firebase.auth().currentUser;
-    const userId = user.uid;
-
-    // Get the new data from the form
-    const newData = {
-        email: document.getElementById('emailModal').value,
-        address: document.getElementById('addressModal').value,
-        phoneNumber: document.getElementById('phoneModal').value,
-        postcode: document.getElementById('postcodeModal').value,
-        city: document.getElementById('cityModal').value,
-        state: document.getElementById('stateModal').value
-    };
-
-    // Update the user profile with the new data
-    updateUserProfile(userId, newData);
-});
-
-// Check if user is authenticated and fetch user data
-firebase.auth().onAuthStateChanged((user) => {
-    if (user) {
-        // User is signed in
-        const userId = user.uid;
-
-        // Retrieve user data from Firestore
-        fetchUserData(userId);
-    } else {
-        // User is signed out
-        console.log('User is not logged in.');
+document.addEventListener('DOMContentLoaded', () => {
+    const userId = localStorage.getItem('uid');
+    if (userId) {
+        fetchAndDisplayUser(userId);
     }
+
+    document.getElementById('submit').addEventListener('click', async (event) => {
+        event.preventDefault(); // Prevent form from submitting normally
+
+        // Collect updated data from the modal form
+        const updatedData = {
+            email: document.getElementById('emailModal').value,
+            address: document.getElementById('addressModal').value,
+            phoneNumber: document.getElementById('phoneModal').value,
+            postcode: document.getElementById('postcodeModal').value,
+            city: document.getElementById('cityModal').value,
+            state: document.getElementById('stateModal').value
+        };
+
+        try {
+            const response = await fetch(`/api/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updatedData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to update user');
+            }
+
+            messageEl = data.message || 'User updated successfully';
+            console.log(messageEl);
+
+            // Update the profile page UI with the new data
+            displayUserData(updatedData);
+
+            // Hide the modal
+            $('#editProfileModal').modal('hide');
+
+        } catch (err) {
+            errorEl = err.message;
+            console.log(errorEl);
+        }
+    });
 });

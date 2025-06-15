@@ -1,10 +1,18 @@
 const stripe = Stripe('pk_test_51RSxGMPBTfKCtpdh8bdgV3pCyK9MHBSRaR1lJtBAjrMTKn7km5YlyGOUfCzMUtGdqBPq8mr5d4lpuVSKO7zNIRd500LbK3sash');
 const elements = stripe.elements();
 
+
+
+
 document.addEventListener("DOMContentLoaded", () => {
-    emailjs.init("9R5K8FyRub386RIu8");
+
+    (function () {
+        emailjs.init("9R5K8FyRub386RIu8");
+    })();
 
     const userId = localStorage.getItem("uid");
+    console.log("User ID from localStorage:", userId);
+
 
     if (!userId) {
         alert("You must be logged in to continue.");
@@ -12,7 +20,22 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    // document.getElementById("resend-otp").addEventListener("click", handleResendOTP);
+    async function fetchUserDetails(userId) {
+        try {
+            const res = await fetch(`/api/users/${userId}`);
+            if (!res.ok) throw new Error('Failed to fetch user details');
+            const userData = await res.json();
+            displayUserDetails(userData);
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function displayUserDetails(user) {
+        document.getElementById('email').textContent = user.email || '';
+    }
+
+    document.getElementById("resend-otp").addEventListener("click", handleResendOTP);
     document.getElementById("verify-otp").addEventListener("click", async function (e) {
         e.preventDefault();
 
@@ -88,101 +111,101 @@ document.addEventListener("DOMContentLoaded", () => {
             alert('Error: ' + err.message);
         }
     });
-
+    fetchUserDetails(userId);
 
 });
 
-// function generateOTP() {
-//     return (Math.floor(100000 + Math.random() * 900000)).toString();
-// }
+function generateOTP() {
+    return (Math.floor(100000 + Math.random() * 900000)).toString();
+}
 
-// function handleResendOTP(e) {
-//     e.preventDefault();
+function handleResendOTP(e) {
+    e.preventDefault();
 
-//     const resendBtn = document.getElementById("resend-otp");
-//     resendBtn.style.pointerEvents = 'none';
-//     resendBtn.style.opacity = '0.5';
+    const resendBtn = document.getElementById("resend-otp");
+    resendBtn.style.pointerEvents = 'none';
+    resendBtn.style.opacity = '0.5';
 
-//     resendOTP().finally(() => {
-//         setTimeout(() => {
-//             resendBtn.style.pointerEvents = 'auto';
-//             resendBtn.style.opacity = '1';
-//         }, 30000);
-//     });
-// }
+    resendOTP().finally(() => {
+        setTimeout(() => {
+            resendBtn.style.pointerEvents = 'auto';
+            resendBtn.style.opacity = '1';
+        }, 30000);
+    });
+}
 
-// async function resendOTP() {
-//     const resendAttempts = parseInt(localStorage.getItem('resendAttempts') || "0");
-//     const lastResendTime = localStorage.getItem('lastResendTime');
-//     const currentTime = Date.now();
+async function resendOTP() {
+    const resendAttempts = parseInt(localStorage.getItem('resendAttempts') || "0");
+    const lastResendTime = localStorage.getItem('lastResendTime');
+    const currentTime = Date.now();
 
-//     if (resendAttempts >= 4) {
-//         alert("Too many attempts. Payment canceled.");
-//         cancelPayment();
-//         return;
-//     }
+    if (resendAttempts >= 4) {
+        alert("Too many attempts. Payment canceled.");
+        cancelPayment();
+        return;
+    }
 
-//     if (lastResendTime && currentTime - lastResendTime < 30000) {
-//         const secondsLeft = Math.ceil((30000 - (currentTime - lastResendTime)) / 1000);
-//         alert(`Wait ${secondsLeft} seconds to resend OTP.`);
-//         return;
-//     }
+    if (lastResendTime && currentTime - lastResendTime < 30000) {
+        const secondsLeft = Math.ceil((30000 - (currentTime - lastResendTime)) / 1000);
+        alert(`Wait ${secondsLeft} seconds to resend OTP.`);
+        return;
+    }
 
-//     const otp = generateOTP();
-//     const expiry = currentTime + 5 * 60 * 1000;
+    const otp = generateOTP();
+    const expiry = currentTime + 5 * 60 * 1000;
 
-//     localStorage.setItem("generatedOTP", otp);
-//     localStorage.setItem("otpGenerationTime", currentTime.toString());
-//     localStorage.setItem("otpExpirationTime", expiry.toString());
-//     localStorage.setItem("lastResendTime", currentTime.toString());
-//     localStorage.setItem("resendAttempts", (resendAttempts + 1).toString());
+    localStorage.setItem("generatedOTP", otp);
+    localStorage.setItem("otpGenerationTime", currentTime.toString());
+    localStorage.setItem("otpExpirationTime", expiry.toString());
+    localStorage.setItem("lastResendTime", currentTime.toString());
+    localStorage.setItem("resendAttempts", (resendAttempts + 1).toString());
 
-//     const email = localStorage.getItem("userEmail");
-//     const name = localStorage.getItem("userName");
+    const email = localStorage.getItem("userEmail");
+    const name = localStorage.getItem("userName");
 
-//     if (!email) {
-//         alert("User email missing. Please log in again.");
-//         return;
-//     }
+    if (!email) {
+        alert("User email missing. Please log in again.");
+        return;
+    }
 
-//     await emailjs.send("service_7e6jx2j", "template_l3gma7d", {
-//         from_name: name,
-//         to_email: email,
-//         otp: otp,
-//         expiration_time: new Date(expiry).toLocaleString()
-//     });
+    await emailjs.send("service_7e6jx2j", "template_l3gma7d", {
+        from_name: name,
+        to_email: email,
+        otp: otp,
+        expiration_time: new Date(expiry).toLocaleString()
+    });
 
-//     alert("OTP resent successfully.");
-// }
+    alert("OTP resent successfully.");
+}
 
-// async function handleVerifyOTP(e) {
-//     e.preventDefault();
-//     try {
-//         await verifyOTP();
+async function handleVerifyOTP(e) {
+    e.preventDefault();
+    try {
+        await verifyOTP();
 
-//         const userId = localStorage.getItem("uid");
-//         if (!userId) throw new Error("Missing user ID.");
+        const userId = localStorage.getItem("uid");
+        if (!userId) throw new Error("Missing user ID.");
 
-//         await saveOrder(userId);
-//     } catch (err) {
-//         console.error(err);
-//         alert(err.message || "Verification or order failed.");
-//     }
-// }
+        await saveOrder(userId);
+    } catch (err) {
+        console.error(err);
+        alert(err.message || "Verification or order failed.");
+    }
+}
 
 async function verifyOTP() {
     const enteredOTP = document.getElementById("otp").value.trim();
     const storedOTP = localStorage.getItem("generatedOTP");
-    // const expiry = parseInt(localStorage.getItem("otpExpirationTime"), 10);
-    // const current = Date.now();
+    const expiry = parseInt(localStorage.getItem("otpExpirationTime"), 10);
+    const current = Date.now();
 
     if (!enteredOTP || enteredOTP.length !== 6) {
         throw new Error("OTP must be 6 digits.");
     }
 
-    // if (current > expiry) {
-    //     throw new Error("OTP expired. Please resend.");
-    // }
+    if (current > expiry) {
+        throw new Error("OTP expired. Please resend.");
+    }
 
     if (enteredOTP !== storedOTP) {
         throw new Error("Invalid OTP. Try again.");
@@ -266,3 +289,4 @@ function cancelPayment() {
     });
     window.location.href = "../html/payment.html";
 }
+
