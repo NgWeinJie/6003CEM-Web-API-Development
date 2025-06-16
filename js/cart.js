@@ -201,12 +201,78 @@ function renumberProducts() {
   });
 }
 
+async function fetchRecommendation(userId) {
+  try {
+    const res = await fetch(`/api/cart/recommendation?userId=${userId}`);
+    const data = await res.json();
+    const recommendationContainer = document.getElementById('recommendation');
+    recommendationContainer.innerHTML = ''; // Clear previous recommendation
+
+    if (data.recommendation) {
+      const rec = data.recommendation;
+
+      const card = document.createElement('div');
+      card.classList.add('card', 'recommendation-card', 'shadow');
+
+      const img = document.createElement('img');
+      img.src = Array.isArray(rec.images) ? rec.images[0] : rec.images;
+      img.alt = rec.title;
+      img.classList.add('card-img-top');
+      img.onerror = () => {
+        img.src = '/images/default-product.png'; // Optional: fallback if image fails to load
+      };
+
+
+      const cardBody = document.createElement('div');
+      cardBody.classList.add('card-body');
+
+      const title = document.createElement('h5');
+      title.classList.add('card-title');
+      title.textContent = rec.title;
+
+      const price = document.createElement('p');
+      price.classList.add('card-text');
+      price.innerHTML = `<strong>Price:</strong> RM ${parseFloat(rec.price).toFixed(2)}`;
+
+      const desc = document.createElement('p');
+      desc.classList.add('card-text');
+      desc.textContent = rec.description;
+
+      const btn = document.createElement('a');
+      btn.classList.add('btn', 'btn-primary');
+      btn.textContent = 'View Product';
+      btn.href = '/product_details.html#' + rec.id;
+
+      cardBody.appendChild(title);
+      cardBody.appendChild(price);
+      cardBody.appendChild(desc);
+      cardBody.appendChild(btn);
+
+      card.appendChild(img);
+      card.appendChild(cardBody);
+
+      const col = document.createElement('div');
+      col.classList.add('col-md-6', 'col-lg-4');
+      col.appendChild(card);
+
+      recommendationContainer.appendChild(col);
+    } else {
+      recommendationContainer.innerHTML = `<p class="text-muted">No recommendations available at the moment.</p>`;
+    }
+  } catch (err) {
+    console.error('Failed to fetch recommendation:', err);
+    document.getElementById('recommendation').innerHTML = `<p class="text-danger">Could not load recommendation. Please try again later.</p>`;
+  }
+}
+
+
 // On DOM load, get user ID from localStorage and fetch cart
 document.addEventListener('DOMContentLoaded', () => {
   const uid = localStorage.getItem('uid');
 
   if (uid) {
     fetchCartItems(uid);
+    fetchRecommendation(uid); 
   } else {
     alert('Please log in to view your cart.');
   }
