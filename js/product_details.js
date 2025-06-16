@@ -1,18 +1,4 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyDCdP64LQYeS4vu3lFH7XtUHOPVJOYCbO8",
-    authDomain: "enterprise-project-3448b.firebaseapp.com",
-    databaseURL: "https://enterprise-project-3448b-default-rtdb.firebaseio.com",
-    projectId: "enterprise-project-3448b",
-    storageBucket: "enterprise-project-3448b.appspot.com",
-    messagingSenderId: "1042464271522",
-    appId: "1:1042464271522:web:1d1a3ffadf6830b5767bfb",
-    measurementId: "G-3S19G51X7T"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-// Get the product ID from the URL
+// Get product ID from the URL hash
 const productId = window.location.hash.substring(1);
 
 // Get references to HTML elements
@@ -23,75 +9,94 @@ const productStockElement = document.getElementById('productStock');
 const productDetailsElement = document.getElementById('productDetails');
 const quantityInput = document.getElementById('quantity');
 
-// Function to fetch product details from Firestore
+// Function to fetch product details
 async function fetchProductDetails(productId) {
     try {
-        const doc = await db.collection('products').doc(productId).get();
-        if (doc.exists) {
-            const productData = doc.data();
-            // Populate HTML elements with product details
-            productNameElement.textContent = productData.itemName;
-            productImageElement.src = productData.itemImageURL;
-            productPriceElement.textContent = `Price: RM ${productData.itemPrice}`;
-            productStockElement.textContent = `Stock: ${productData.itemStock}`;
-            productDetailsElement.textContent = productData.itemDetails;
-        } else {
-            console.error('No such product!');
+        const response = await fetch(`/api/products/${productId}`);
+        
+        if (!response.ok) {
+            throw new Error('Product not found');
         }
+
+        const product = await response.json();
+
+        // Display product details in the DOM
+        productNameElement.textContent = product.title;
+        productImageElement.src = product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image';
+        productPriceElement.textContent = `Price: RM ${product.price.toFixed(2)}`;
+        productStockElement.textContent = `Stock: ${product.stock}`;
+        productDetailsElement.textContent = product.description || 'No description available';
+        
     } catch (error) {
-        console.error('Error getting product details:', error);
+        console.error('Error fetching product:', error);
+        alert('Failed to load product details.');
     }
 }
 
 // Call the function to fetch and display product details
 fetchProductDetails(productId);
 
-// Function to handle quantity increase
-document.getElementById('increaseQuantity').addEventListener('click', function() {
+// Quantity increase button
+document.getElementById('increaseQuantity').addEventListener('click', function () {
     let quantity = parseInt(quantityInput.value);
-    quantity = isNaN(quantity) ? 0 : quantity;
+    quantity = isNaN(quantity) ? 1 : quantity;
     quantityInput.value = quantity + 1;
 });
 
-// Function to handle quantity decrease
-document.getElementById('decreaseQuantity').addEventListener('click', function() {
+// Quantity decrease button
+document.getElementById('decreaseQuantity').addEventListener('click', function () {
     let quantity = parseInt(quantityInput.value);
-    quantity = isNaN(quantity) ? 0 : quantity;
+    quantity = isNaN(quantity) ? 1 : quantity;
     if (quantity > 1) {
         quantityInput.value = quantity - 1;
     }
 });
 
-// Function to add product to cart
-document.getElementById('addToCart').addEventListener('click', async function() {
+// Add to Cart button
+document.getElementById('addToCart').addEventListener('click', async function () {
     try {
-        const quantity = parseInt(quantityInput.value);
-        const productData = (await db.collection('products').doc(productId).get()).data();
+        const quantity = parseInt(quantityInput.value) || 1;
+        const userId = localStorage.getItem('uid');
 
-        // Retrieve product information
-        const productName = productData.itemName;
-        const productPrice = parseFloat(productData.itemPrice);
-        const productStock = parseInt(productData.itemStock);
-        const productImageURL = productData.itemImageURL;
+        if (!userId) {
+            alert('Please login before adding to cart.');
+            window.location.href = 'login.html';
+            return;
+        }
 
-        // Get the current user's ID
-        const userId = firebase.auth().currentUser.uid;
+        // Fetch the product data from your MongoDB API
+        const response = await fetch(`/api/products/${productId}`);
+        if (!response.ok) throw new Error('Failed to fetch product for cart');
 
-        // Save product information to Firestore collection 'cart'
-        await db.collection('cart').add({
+        const product = await response.json();
+
+        const cartItem = {
             userId: userId,
-            productId: productId,
-            productName: productName,
-            productPrice: productPrice,
-            productStock: productStock,
+            productId: product._id,
+            productName: product.title,
+            productPrice: product.price,
+            productImage: product.images?.[0],
+            productStock: product.stock,
             productQuantity: quantity,
-            productImageURL: productImageURL
+            productCategory: product.category
+        };
+
+        const cartResponse = await fetch('/api/cart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cartItem)
         });
 
-        console.log('Product added to cart');
-        alert('Product added to cart!');
+        if (!cartResponse.ok) {
+            const err = await cartResponse.json();
+            throw new Error(err.message || 'Unknown error adding to cart');
+        }
+
+        const result = await cartResponse.json();
+        alert(`Added "${product.title}" to cart!`);
+
     } catch (error) {
-        console.error('Error adding product to cart:', error);
-        alert('Failed to add product to cart. Please try again later.');
+        console.error('Error adding to cart:', error);
+        alert('Error adding to cart. Please try again.');
     }
 });

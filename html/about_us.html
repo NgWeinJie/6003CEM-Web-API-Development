@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact Us - Dry Foodies</title>
+    <title>About Us - Dry Foodies</title>
     <!-- Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <!-- Custom CSS -->
-    <link href="css/contact_us.css" rel="stylesheet">
+    <link href="css/about_us.css" rel="stylesheet">
 </head>
 <body>
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="home.html">Home</a>
+        <a class="navbar-brand" href="/home.html">Home</a>
+
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -39,54 +40,52 @@
                         <a class="dropdown-item" href="#Sundry">Sundry</a>
                     </div>
                 <li class="nav-item">
-                    <a class="nav-link" href="about_us.html">About Us</a>
+                    <a class="nav-link" href="/about_us.html">About Us</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="orderHistory.html">Order History</a>
+                    <a class="nav-link" href="/orderHistory.html">Order History</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="coins_rewards.html">Coins Rewards</a>
+                    <a class="nav-link" href="/coins_rewards.html">Coins Rewards</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="profile.html">Profile</a>
+                    <a class="nav-link" href="/profile.html">Profile</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="contact_us.html">Contact Us</a>
+                    <a class="nav-link" href="/contact_us.html">Contact Us</a>
                 </li>
             </ul>
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link" href="cart.html"><i class="fas fa-shopping-cart"></i> Add to Cart</a>
+                    <a class="nav-link" href="/cart.html"><i class="fas fa-shopping-cart"></i> Add to Cart</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="login.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    <a class="nav-link" href="/login.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </li>
             </ul>
         </div>
     </nav>
 
-    <!-- Contact Us Form -->
-    <div class="container mt-5">
-        <div class="row">
-            <div class="col-md-8 offset-md-2">
-                <h2>Contact Us</h2>
-                <form id="contactForm">
-                    <h6>If you have any questions or problems, feel free to speak up. We always hear our customers inquiries.</h6>
-                    <br>
-                    <div class="form-group">
-                        <label for="userName">Name</label>
-                        <input type="text" class="form-control" id="userName" placeholder="Your Name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="userEmail">Email</label>
-                        <input type="email" class="form-control" id="userEmail" placeholder="Your Email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="userMessage">Message</label>
-                        <textarea class="form-control" id="userMessage" rows="6" placeholder="Your Message" required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-success">Send Message</button>
-                </form>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-6">
+                <img src="/image/logo.png" class="logo img-fluid mb-4" alt="Store Image"/>
+                <h1>About Us</h1>
+                <p>Welcome to Dry Foodies - Your one-stop shop for quality dry foods!</p>
+                <h2>Who We Are</h2>
+                <p>At Dry Foodies, we specialize in providing a wide range of high-quality dry food items. Our mission is to bring you the best selection of dry foods, ensuring that you always have access to healthy, delicious, and convenient options.</p>
+                <h3>Our Categories</h3>
+                <ul>
+                    <li>Biscuits & Cakes</li>
+                    <li>Canned Food</li>
+                    <li>Cereals</li>
+                    <li>Snacks</li>
+                    <li>Commodities</li>
+                    <li>Jams, Spreads & Honey</li>
+                    <li>Pasta & Instant Food</li>
+                    <li>Sauce, Spice & Seasoning</li>
+                    <li>Sundry</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -97,9 +96,9 @@
             <div class="row">
                 <div class="col-md-4">
                     <h5>FAQ</h5>
-                    <p>Don't understand or have any problems, click<span class="footer-link"><a href="facts_questions.html">HERE</a></span></p>
+                    <p>Don't understand or have any problems, click<span class="footer-link"><a href="/facts_questions.html">HERE</a></span></p>
                     <h5>Terms & Conditions</h5>
-                    <p>Review the terms & conditions, click<span class="footer-link"><a href="terms_conditions.html">HERE</a></span></p>
+                    <p>Review the terms & conditions, click<span class="footer-link"><a href="/terms_conditions.html">HERE</a></span></p>
                 </div>
                 <div class="col-md-4">
                     <h5>Contact Us</h5>
@@ -120,19 +119,7 @@
 
     <!-- Bootstrap JS (with jQuery) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Firebase App (the core Firebase SDK) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <!-- Firestore -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <!-- Firebase Storage -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-    <!-- Firebase Authentication -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <!-- Include jQuery -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <!-- Bootstrap JavaScript -->
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="js/contact_us.js"></script>
 
 </body>
 </html>

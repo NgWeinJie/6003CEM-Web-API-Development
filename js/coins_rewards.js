@@ -46,9 +46,10 @@ const renderVouchers = () => {
                             <h5 class="card-title">${voucher.name}</h5>
                             <p class="card-text"><strong>Stocks:</strong> ${voucher.stocks}</p>
                             <p class="card-text"><strong>Cost (Coins):</strong> ${voucher.cost}</p>
-                            <p class="card-text"><strong>How to Use:</strong> ${voucher.whereToUse}</p>
-                            <button class="btn btn-primary" onclick="redeemVoucher('${doc.id}', ${voucher.cost})">Redeem</button>
-                            <a href="#" class="card-link terms-link" data-toggle="termsModal" data-terms="${voucher.termsConditions}">Terms & Conditions</a>
+                            <p class="card-text"><strong>How to Use:</strong> ${voucher.whereToUse}</p> 
+                            <a href="#" class="card-link terms-link mb-3" data-toggle="termsModal" data-terms="${voucher.termsConditions}">Terms & Conditions</a><br><br>
+                            <button class="btn btn-primary btn-redeem" onclick="redeemVoucher('${doc.id}', ${voucher.cost})">Redeem</button>
+                           
                             <div id="promoCode-${doc.id}" class="mt-2"></div>
                         </div>
                     </div>

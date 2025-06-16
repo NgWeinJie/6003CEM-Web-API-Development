@@ -1,26 +1,35 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyDCdP64LQYeS4vu3lFH7XtUHOPVJOYCbO8",
-    authDomain: "enterprise-project-3448b.firebaseapp.com",
-    databaseURL: "https://enterprise-project-3448b-default-rtdb.firebaseio.com",
-    projectId: "enterprise-project-3448b",
-    storageBucket: "enterprise-project-3448b.appspot.com",
-    messagingSenderId: "1042464271522",
-    appId: "1:1042464271522:web:1d1a3ffadf6830b5767bfb",
-    measurementId: "G-3S19G51X7T"
+const stripe = Stripe('pk_test_51RSxGMPBTfKCtpdh8bdgV3pCyK9MHBSRaR1lJtBAjrMTKn7km5YlyGOUfCzMUtGdqBPq8mr5d4lpuVSKO7zNIRd500LbK3sash');
+const elements = stripe.elements();
+
+(function () {
+  emailjs.init("9R5K8FyRub386RIu8");
+})();
+
+function openTab(evt, tabName) {
+  const tabcontent = document.getElementsByClassName("tabcontent");
+  for (let i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+
+  const tablinks = document.getElementsByClassName("tablinks");
+  for (let i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+
+  document.getElementById(tabName).style.display = "block";
+  evt.currentTarget.className += " active";
+}
+
+window.onload = function () {
+  document.querySelector(".tablinks").click();
 };
 
-// Initialize Firebase app
-firebase.initializeApp(firebaseConfig);
-
-// Get a reference to Firestore database
-const db = firebase.firestore();
-
-// Function to extract parameters from URL
+// Utility to get URL parameters
 function getUrlParameter(name) {
-    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-    var results = regex.exec(location.search);
-    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+  name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+  const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+  const results = regex.exec(window.location.search);
+  return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
 
 // Display promo discount if available
@@ -28,321 +37,467 @@ const promoDiscountElement = document.getElementById('promoDiscount');
 const discount = parseFloat(getUrlParameter('discount'));
 const promoCode = getUrlParameter('promoCode');
 if (discount > 0) {
-    promoDiscountElement.textContent = `Promo Discount: RM ${discount.toFixed(2)}`;
+  promoDiscountElement.textContent = `Promo Discount: RM ${discount.toFixed(2)}`;
 }
 
-// Function to fetch user data from Firestore
-const fetchUserDetails = (userId) => {
-    firebase.firestore().collection('users').doc(userId).get()
-    .then((doc) => {
-        if (doc.exists) {
-            const userData = doc.data();
-            // Display user data in the user details form
-            displayUserDetails(userData);
-            // Fetch and display user coins
-            displayUserCoins(userData.points || 0);
-        } else {
-            console.log('No such document!');
-            displayUserCoins(0); // Handle first-time purchase scenario
-        }
-    })
-    .catch((error) => {
-        console.error('Error getting user data:', error);
-        displayUserCoins(0); // Handle errors gracefully
+// Use 'uid' from localStorage as user ID
+const currentUser = { id: localStorage.getItem('uid') };
+
+if (!currentUser.id) {
+  alert('Please log in first.');
+  window.location.href = 'login.html';
+}
+
+// Fetch user details from backend
+async function fetchUserDetails(userId) {
+  try {
+    const res = await fetch(`/api/users/${userId}`);
+    if (!res.ok) throw new Error('Failed to fetch user details');
+    const userData = await res.json();
+    displayUserDetails(userData);
+    displayUserCoins(userData.points || 0);
+  } catch (err) {
+    console.error(err);
+    displayUserCoins(0);
+  }
+}
+
+// Show user details in form
+function displayUserDetails(user) {
+  document.getElementById('userName').value = `${user.firstName} ${user.lastName}`;
+  document.getElementById('userPhone').value = user.phoneNumber || '';
+  document.getElementById('userAddress').value = user.address || '';
+  document.getElementById('userPostcode').value = user.postcode || '';
+  document.getElementById('userCity').value = user.city || '';
+  document.getElementById('userState').value = user.state || '';
+}
+
+// Show user coins and enable/disable redeem switch
+function displayUserCoins(points) {
+  const userCoinsElem = document.getElementById('userCoins');
+  const redeemCoinsSwitch = document.getElementById('redeemCoinsSwitch');
+
+  userCoinsElem.textContent = points;
+  if (points === 0) {
+    redeemCoinsSwitch.checked = false;
+    redeemCoinsSwitch.disabled = true;
+  } else {
+    redeemCoinsSwitch.disabled = false;
+  }
+}
+
+// Global cartItems array to retain image info
+let cartItemsWithImage = [];
+
+// Fetch cart items from backend and display
+async function fetchCartItems(userId) {
+  try {
+    const res = await fetch(`/api/cart?userId=${userId}`);
+    if (!res.ok) throw new Error('Failed to fetch cart items');
+
+    const cartItems = await res.json();
+    cartItemsWithImage = cartItems; // save full cart for order processing (assuming global)
+
+    const container = document.getElementById('paymentItems');
+    container.innerHTML = '';  // clear container
+
+    if (cartItems.length === 0) {
+      container.textContent = 'Your cart is empty.';
+      document.getElementById('shippingFee').textContent = '';
+      document.getElementById('totalAmount').textContent = '';
+      return;
+    }
+
+    let totalAmount = 0;
+    const shippingFee = 10.00;
+
+    cartItems.forEach(item => {
+      const div = document.createElement('div');
+      div.classList.add('payment-item'); // consistent class
+      div.innerHTML = `
+        <img class="product-image" src="${item.productImage}" alt="${item.productName}" style="max-width: 100px; max-height: 100px;">
+        <p class="product-name">Product Name: ${item.productName}</p>
+        <p class="product-price">Product Price: RM ${item.productPrice.toFixed(2)}</p>
+        <p class="product-quantity">Quantity: ${item.productQuantity}</p>
+        <br>
+      `;
+      container.appendChild(div);
+      totalAmount += item.productPrice * item.productQuantity;
     });
-};
 
-// Function to display user data in the user details form
-const displayUserDetails = (userData) => {
-    document.getElementById('userName').value = `${userData.firstName} ${userData.lastName}`;
-    document.getElementById('userPhone').value = userData.phoneNumber;
-    document.getElementById('userAddress').value = userData.address;
-    document.getElementById('userPostcode').value = userData.postcode;
-    document.getElementById('userCity').value = userData.city;
-    document.getElementById('userState').value = userData.state;
-};
+    // Use discount if defined, else default to 0
+    const discountElem = document.getElementById('discount');
+    const discountAmount = discountElem ? parseFloat(discountElem.textContent) || 0 : 0;
+    if (discountAmount > 0) totalAmount -= discountAmount;
 
-// Function to display user coins
-const displayUserCoins = (points) => {
-    document.getElementById('userCoins').textContent = points;
-    const redeemCoinsSwitch = document.getElementById('redeemCoinsSwitch');
-    
-    if (points === 0) {
-        redeemCoinsSwitch.checked = false;
-        redeemCoinsSwitch.disabled = true;
-    } else {
-        redeemCoinsSwitch.disabled = false;
+    document.getElementById('shippingFee').textContent = `Shipping Fee: RM ${shippingFee.toFixed(2)}`;
+
+    const finalAmount = totalAmount + shippingFee;
+    const totalElem = document.getElementById('totalAmount');
+    totalElem.textContent = `Total Amount: RM ${finalAmount.toFixed(2)}`;
+    totalElem.dataset.originalTotalAmount = finalAmount;
+
+  } catch (err) {
+    console.error(err);
+    alert('Failed to load cart items.');
+  }
+}
+
+const cardNumberElement = elements.create('cardNumber');
+cardNumberElement.mount('#card-number-element');
+
+const cardExpiryElement = elements.create('cardExpiry');
+cardExpiryElement.mount('#card-expiry-element');
+
+const cardCvcElement = elements.create('cardCvc');
+cardCvcElement.mount('#card-cvc-element');
+
+async function validateCardDetails() {
+  const cardHolderName = document.getElementById('cardHolder').value.trim();
+
+  const { error: cardNumberError, paymentMethod } = await stripe.createPaymentMethod({
+    type: 'card',
+    card: cardNumberElement,
+    billing_details: {
+      name: cardHolderName,
+    },
+  });
+
+  const { error: cardExpiryError } = await stripe.createPaymentMethod({
+    type: 'card',
+    card: cardExpiryElement,
+    billing_details: {
+      name: cardHolderName,
+    },
+  });
+
+  const { error: cardCvcError } = await stripe.createPaymentMethod({
+    type: 'card',
+    card: cardCvcElement,
+    billing_details: {
+      name: cardHolderName,
+    },
+  });
+
+  if (!cardNumberElement || !cardCvcElement || !cardExpiryElement || !cardHolderName) {
+    window.alert(`Please fill in all credit card detials.`)
+    return false;
+  }
+
+  if (cardNumberError) {
+    window.alert(`Card Number Error: ${cardNumberError.message}`);
+    return false;
+  }
+
+  if (cardExpiryError) {
+    window.alert(`Card Expiry Error: ${cardExpiryError.message}`);
+    return false;
+  }
+
+  if (cardCvcError) {
+    window.alert(`Card CVC Error: ${cardCvcError.message}`);
+    return false;
+  }
+
+  const paymentDetails = {
+    cardHolderName: cardHolderName,
+    paymentMethodId: paymentMethod.id,
+  };
+  localStorage.setItem('paymentDetails', JSON.stringify(paymentDetails));
+
+  console.log("Payment details stored in session:", paymentDetails);
+
+  return true;
+}
+
+function generateOTP() {
+  let otpNumber = Math.floor(100000 + Math.random() * 900000);
+  return otpNumber.toString();
+}
+
+document.getElementById("payment").addEventListener("click", function (e) {
+  e.preventDefault();
+  SendMailOtp();
+});
+
+
+async function SendMailOtp() {
+  try {
+    // Step 1: Validate card details before continuing
+    const isCardValid = await validateCardDetails();
+    if (!isCardValid) return;
+
+    // Step 2: Handle resend attempts session tracking
+    if (!localStorage.getItem('resendAttempts')) {
+      localStorage.setItem('resendAttempts', '1');
     }
-};
 
-// Function to fetch cart items instead of payment items
-function fetchCartItems(currentUser) {
-    if (!currentUser) {
-        alert('Please log in to proceed with payment.');
-        return;
+    const userId = getCurrentUserId();
+
+    // Step 4: Fetch user from your MongoDB backend
+    const response = await fetch(`/api/users/${userId}`);
+    if (!response.ok) {
+      alert("User not found.");
+      return;
+    }
+    const userData = await response.json();
+    const userEmail = userData.email;
+
+    if (!userEmail || userEmail.trim() === "") {
+      alert("Invalid email address.");
+      return;
     }
 
-    const paymentItemsContainer = document.getElementById('paymentItems');
-    paymentItemsContainer.innerHTML = '';
+    // // Step 5: Generate OTP and save it in session
+    const otp = generateOTP();
 
-    db.collection('cart').where('userId', '==', currentUser.uid).get()
-        .then(querySnapshot => {
-            let totalAmount = 0;
-            const shippingFee = 10.00; // Define the shipping fee
-            querySnapshot.forEach(doc => {
-                const cartItem = doc.data();
-                const itemElement = document.createElement('div');
-                itemElement.classList.add('payment-item');
-                itemElement.innerHTML = `
-                    <p>Product Name: ${cartItem.productName}</p>
-                    <p>Product Price: RM ${cartItem.productPrice.toFixed(2)}</p>
-                    <p>Quantity: ${cartItem.productQuantity}</p>
-                    <br>
-                `;
-                paymentItemsContainer.appendChild(itemElement);
-                totalAmount += cartItem.productPrice * cartItem.productQuantity;
-            });
+    const userName = document.getElementById('userName')?.value || '';
+    const phone = document.getElementById('userPhone')?.value || '';
+    const address = document.getElementById('userAddress')?.value || '';
+    const postcode = document.getElementById('userPostcode')?.value || '';
+    const city = document.getElementById('userCity')?.value || '';
+    const state = document.getElementById('userState')?.value || '';
+    const remark = document.getElementById('userRemark')?.value || '';
+    const totalText = document.getElementById('totalAmount')?.textContent || '';
+    const total = parseFloat(totalText.split('RM')[1]?.trim()) || 0;
+    const userCoins = parseInt(document.getElementById('userCoins')?.textContent || '0', 10);
+    const redeemSwitch = document.getElementById('redeemCoinsSwitch');
+    const discount = document.getElementById('discount');
+    const promoCode = document.getElementById('promoCode')?.value || '';
 
-            // Check if there is a promo discount
-            const promoDiscount = parseFloat(getUrlParameter('discount'));
-            if (promoDiscount > 0) {
-                // Apply promo discount if available
-                totalAmount -= promoDiscount;
-            }
+    // Collect cart items from the displayed list (.payment-item)
+    const cartElements = document.querySelectorAll('.payment-item');
+    const cartItemsWithImage = [];
 
-            // Display the shipping fee
-            document.getElementById('shippingFee').textContent = `Shipping Fee: RM ${shippingFee.toFixed(2)}`;
+    cartElements.forEach(itemEl => {
+      const productNameRaw = itemEl.querySelector('.product-name')?.textContent || '';
+      const productName = productNameRaw.replace('Product Name:', '').trim();
 
-            // Add the shipping fee to the total amount and display it
-            const finalAmount = totalAmount + shippingFee;
-            document.getElementById('totalAmount').textContent = `Total Amount: RM ${finalAmount.toFixed(2)}`;
+      const productPriceRaw = itemEl.querySelector('.product-price')?.textContent || '';
+      const productPrice = parseFloat(productPriceRaw.replace('Product Price: RM', '').trim());
 
-            // Store the original total amount in a data attribute for later reference
-            document.getElementById('totalAmount').dataset.originalTotalAmount = finalAmount;
-        })
-        .catch(error => {
-            console.error('Error fetching cart items:', error);
-            alert('Failed to fetch cart items. Please try again later.');
+      const productQuantityRaw = itemEl.querySelector('.product-quantity')?.textContent || '';
+      const productQuantity = parseInt(productQuantityRaw.replace('Quantity:', '').trim(), 10);
+
+      const productImage = itemEl.querySelector('.product-image')?.src || '';
+
+      if (productName && !isNaN(productPrice) && !isNaN(productQuantity)) {
+        cartItemsWithImage.push({
+          productName,
+          productPrice,
+          productQuantity,
+          productImage
         });
-}
-
-// Function to update the total amount based on redeem coins switch
-function updateTotalAmount() {
-    const totalAmountElement = document.getElementById('totalAmount');
-    const redeemCoinsSwitch = document.getElementById('redeemCoinsSwitch');
-    const userCoins = parseInt(document.getElementById('userCoins').textContent);
-    const originalTotalAmount = parseFloat(totalAmountElement.dataset.originalTotalAmount);
-
-    if (redeemCoinsSwitch.checked && userCoins === 0) {
-        alert('0 coins balance. You cannot redeem Dry Foodies Coins.');
-        redeemCoinsSwitch.checked = false; // Uncheck the switch
-        return;
-    }
-
-    let totalAmount = originalTotalAmount;
-    let coinsDiscount = 0; // Initialize coins discount
-
-    if (redeemCoinsSwitch.checked) {
-        coinsDiscount = userCoins * 0.01; // Calculate coins discount (assuming 1% per coin)
-        totalAmount -= coinsDiscount; // Deduct coins discount from total amount
-    }
-
-    totalAmountElement.textContent = `Total Amount: RM ${totalAmount.toFixed(2)}`;
-
-    // Display or hide Coins Discount based on redeemCoinsSwitch
-    const coinsDiscountElement = document.getElementById('coinsDiscount');
-    coinsDiscountElement.textContent = redeemCoinsSwitch.checked ? `Coins Discount: RM ${coinsDiscount.toFixed(2)}` : '';
-}
-
-// Function to handle back button click event
-function navigateBackToCart() {
-    // Redirect to the cart page
-    window.location.href = 'cart.html';
-}
-
-// Function to delete cart items for the current user
-async function deleteCartItems(currentUser) {
-    if (!currentUser) {
-        alert('Please log in to proceed with payment.');
-        return;
-    }
-
-    const querySnapshot = await db.collection('cart').where('userId', '==', currentUser.uid).get();
-
-    // Array to store deletion promises
-    const deletionPromises = [];
-
-    querySnapshot.forEach(doc => {
-        // Delete each cart item document
-        const deletionPromise = doc.ref.delete();
-        deletionPromises.push(deletionPromise);
+      } else {
+        console.warn('Skipping invalid cart item:', { productName, productPrice, productQuantity, productImage });
+      }
     });
 
-    try {
-        // Wait for all deletion promises to resolve
-        await Promise.all(deletionPromises);
-        console.log('All cart items deleted successfully');
-    } catch (error) {
-        console.error('Error deleting cart items:', error);
-        alert('Failed to delete cart items. Please try again later.');
-    }
-}
+    console.log('Collected cart items:', cartItemsWithImage);
 
-// Function to generate a tracking number
-function generateTrackingNumber() {
-    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let trackingNumber = '';
-    for (let i = 0; i < 10; i++) {
-        const randomIndex = Math.floor(Math.random() * charset.length);
-        trackingNumber += charset[randomIndex];
-    }
-    return trackingNumber;
-}
+    // Save everything to localStorage
+    localStorage.setItem("generatedOTP", otp);
+    localStorage.setItem("uid", userId);
+    localStorage.setItem("userName", userName);
+    localStorage.setItem("userEmail", userEmail);
+    localStorage.setItem("userPhone", phone);
+    localStorage.setItem("userAddress", address);
+    localStorage.setItem("userPostcode", postcode);
+    localStorage.setItem("userCity", city);
+    localStorage.setItem("userState", state);
+    localStorage.setItem("userRemark", remark);
+    localStorage.setItem("promoCode", promoCode);
+    localStorage.setItem("totalAmount", total.toString());
+    localStorage.setItem("userCoins", userCoins.toString());
+    localStorage.setItem('discount', discount?.textContent || '0');
+    localStorage.setItem("redeemCoinsSwitch", redeemSwitch?.checked ? "true" : "false");
+    localStorage.setItem("cartItemsWithImage", JSON.stringify(cartItemsWithImage));
 
-// Function to update product stock in Firestore
-async function updateProductStock(cartItems) {
-    const updatePromises = cartItems.map(async item => {
-        const productDocRef = db.collection('products').where('itemName', '==', item.productName).limit(1);
-        const productSnapshot = await productDocRef.get();
-        if (!productSnapshot.empty) {
-            const productDoc = productSnapshot.docs[0];
-            const productData = productDoc.data();
-            const newStock = productData.itemStock - item.productQuantity;
-            return productDoc.ref.update({ itemStock: newStock });
-        } else {
-            console.log(`No product found with name: ${item.productName}`);
-        }
-    });
-    try {
-        await Promise.all(updatePromises);
-        console.log('Product stock updated successfully');
-    } catch (error) {
-        console.error('Error updating product stock:', error);
-        throw new Error('Failed to update product stock. Please try again later.');
-    }
-}
-
-// Function to save order details to Firestore and update user points
-async function saveOrder(currentUser, promoCode) {
-    if (!currentUser) {
-        alert('Please log in to proceed with payment.');
-        return;
-    }
-
-    // Get user details
-    const userName = document.getElementById('userName').value;
-    const userPhone = document.getElementById('userPhone').value;
-    const userAddress = document.getElementById('userAddress').value;
-    const userPostcode = document.getElementById('userPostcode').value;
-    const userCity = document.getElementById('userCity').value;
-    const userState = document.getElementById('userState').value;
-    const userRemark = document.getElementById('userRemark').value;
-
-    // Get cart items
-    const cartItems = [];
-    const paymentItemsContainer = document.getElementById('paymentItems');
-    paymentItemsContainer.querySelectorAll('.payment-item').forEach(item => {
-        const productName = item.querySelector('p:nth-child(1)').textContent.split(':')[1].trim();
-        const productPrice = parseFloat(item.querySelector('p:nth-child(2)').textContent.split(':')[1].trim().replace('RM ', ''));
-        const productQuantity = parseInt(item.querySelector('p:nth-child(3)').textContent.split(':')[1].trim());
-        cartItems.push({ productName, productPrice, productQuantity });
-    });
-
-    // Generate tracking number
-    const trackingNumber = generateTrackingNumber();
-
-    // Calculate total amount
-    const totalAmount = parseFloat(document.getElementById('totalAmount').textContent.split('RM ')[1].trim());
-
-    // Calculate points (1 point for each RM spent)
-    const pointsEarned = Math.floor(totalAmount);
-
-    // Create order object
-    const order = {
-        userId: currentUser.uid,
-        userName,
-        userPhone,
-        userAddress,
-        userPostcode,
-        userCity,
-        userState,
-        userRemark,
-        cartItems,
-        totalAmount,
-        shippingFee: 10.00, // Fixed shipping fee
-        status: "Order Received",
-        trackingNumber,
-        promoCode: promoCode || '',
-        discount: discount || 0,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    // Prepare email template parameters
+    const templateParams = {
+      from_name: userName,
+      to_email: userEmail,
+      otp: otp,
     };
 
-    // Add coinsDiscount to order if redeemCoinsSwitch is checked
-    const redeemCoinsSwitch = document.getElementById('redeemCoinsSwitch');
-    if (redeemCoinsSwitch.checked) {
-        const userCoins = parseInt(document.getElementById('userCoins').textContent);
-        const coinsDiscount = userCoins * 0.01; // Calculate coins discount (assuming 1% per coin)
-        order.coinsDiscount = coinsDiscount;
-    }
+    // Send the OTP via EmailJS
+    const result = await emailjs.send('service_7e6jx2j', 'template_l3gma7d', templateParams);
+    alert("OTP has been sent to your email.");
+    console.log("Email sent:", result);
 
-    try {
-        // Save order to Firestore
-        const orderRef = await db.collection('orders').add(order);
+    // Redirect to OTP page
+    window.location.href = "otp.html";
 
-        // Update product stock
-        await updateProductStock(cartItems);
-
-        // Delete cart items
-        await deleteCartItems(currentUser);
-
-        // Update user points
-        const userDocRef = db.collection('users').doc(currentUser.uid);
-        const userDoc = await userDocRef.get();
-        if (userDoc.exists) {
-            const userData = userDoc.data();
-            let userPoints = userData.points || 0;
-
-            // Check if redeem coins switch is checked
-            if (redeemCoinsSwitch.checked) {
-                const redeemedPoints = userPoints; // User can redeem all their points
-                userPoints -= redeemedPoints;
-            }
-
-            // Add earned points
-            userPoints += pointsEarned;
-
-            // Update user points in Firestore
-            await userDocRef.update({
-                points: userPoints
-            });
-
-            // Alert payment successful with tracking number and points earned
-            alert(`Payment successful. Your tracking number is: ${trackingNumber}. You earned ${pointsEarned} points.`);
-        }
-
-        // Redirect to order home page
-        window.location.href = 'home.html';
-    } catch (error) {
-        console.error('Error saving order:', error);
-        alert('Failed to place order. Please try again later.');
-    }
+  } catch (error) {
+    console.error("Error in SendMailOtp:", error);
+    alert("Something went wrong. Please try again.");
+  }
 }
 
-// Initialize Firebase authentication state observer
-firebase.auth().onAuthStateChanged(currentUser => {
-    if (currentUser) {
-        fetchCartItems(currentUser);
-        fetchUserDetails(currentUser.uid);
-    } else {
-        // Redirect to login page if not authenticated
-        window.location.href = 'login.html';
-    }
-});
+function getCurrentUserId() {
+  const userId = localStorage.getItem('uid');
+
+  if (!userId) {
+    alert('Please log in to view your order history.');
+    window.location.href = 'login.html';
+    return;
+  }
+  return userId;
+}
+
+// Update total amount when redeem coins switch toggled
+function updateTotalAmount() {
+  const totalElem = document.getElementById('totalAmount');
+  const redeemSwitch = document.getElementById('redeemCoinsSwitch');
+  const userCoins = parseInt(document.getElementById('userCoins').textContent);
+  const originalTotal = parseFloat(totalElem.dataset.originalTotalAmount);
+
+  if (redeemSwitch.checked && userCoins === 0) {
+    alert('You have no coins to redeem.');
+    redeemSwitch.checked = false;
+    return;
+  }
+
+  let total = originalTotal;
+  let coinsDiscount = 0;
+
+  if (redeemSwitch.checked) {
+    coinsDiscount = userCoins * 0.01;
+    total -= coinsDiscount;
+  }
+
+  totalElem.textContent = `Total Amount: RM ${total.toFixed(2)}`;
+  document.getElementById('coinsDiscount').textContent = redeemSwitch.checked ? `Coins Discount: RM ${coinsDiscount.toFixed(2)}` : '';
+}
+
+// // Generate random tracking number
+// function generateTrackingNumber() {
+//   const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+//   let trackingNumber = '';
+//   for (let i = 0; i < 10; i++) {
+//     trackingNumber += charset.charAt(Math.floor(Math.random() * charset.length));
+//   }
+//   return trackingNumber;
+// }
+
+// // Delete all cart items for the current user
+// async function deleteCartItems(userId) {
+//   try {
+//     const res = await fetch(`/api/cart/clear?userId=${userId}`, {
+//       method: 'DELETE'
+//     });
+
+//     if (!res.ok) throw new Error('Failed to clear cart');
+
+//     console.log('Cart items deleted successfully');
+//     return true;
+//   } catch (err) {
+//     console.error('Error deleting cart items:', err);
+//     return false;
+//   }
+// }
+
+// // Update user's points - add earned points and deduct redeemed points
+// async function updateUserPoints(userId, pointsEarned, pointsRedeemed) {
+//   try {
+//     const res = await fetch(`/api/users/${userId}/points`, {
+//       method: 'PATCH',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({
+//         pointsEarned,
+//         pointsRedeemed
+//       })
+//     });
+
+//     if (!res.ok) throw new Error('Failed to update user points');
+
+//     console.log('User points updated successfully');
+//     return true;
+//   } catch (err) {
+//     console.error('Error updating user points:', err);
+//     return false;
+//   }
+// }
+
+// // Save order to backend
+// async function saveOrder() {
+//   const userName = document.getElementById('userName').value;
+//   const userPhone = document.getElementById('userPhone').value;
+//   const userAddress = document.getElementById('userAddress').value;
+//   const userPostcode = document.getElementById('userPostcode').value;
+//   const userCity = document.getElementById('userCity').value;
+//   const userState = document.getElementById('userState').value;
+//   const userRemark = document.getElementById('userRemark').value;
+
+//   const totalAmountText = document.getElementById('totalAmount').textContent;
+//   const totalAmount = parseFloat(totalAmountText.split('RM')[1].trim());
+//   if (isNaN(totalAmount)) {
+//     alert('Invalid total amount.');
+//     return;
+//   }
+
+//   const redeemSwitch = document.getElementById('redeemCoinsSwitch');
+//   const userCoins = parseInt(document.getElementById('userCoins').textContent);
+//   const coinsDiscount = redeemSwitch.checked ? userCoins * 0.01 : 0;
+//   const pointsRedeemed = redeemSwitch.checked ? userCoins : 0;
+
+//   const pointsEarned = Math.floor(totalAmount);
+//   const trackingNumber = generateTrackingNumber();
+
+//   const cartItems = cartItemsWithImage.map(item => ({
+//     productName: item.productName,
+//     productPrice: item.productPrice,
+//     productQuantity: item.productQuantity,
+//     productImage: Array.isArray(item.productImage) ? item.productImage[0] : item.productImage
+//   }));
+
+//   const order = {
+//     userId: currentUser.id,
+//     userName,
+//     userPhone,
+//     userAddress,
+//     userPostcode,
+//     userCity,
+//     userState,
+//     userRemark,
+//     cartItems,
+//     totalAmount,
+//     shippingFee: 10.00,
+//     status: "Order Received",
+//     trackingNumber,
+//     promoCode: promoCode || '',
+//     discount: discount || 0,
+//     coinsDiscount,
+//     pointsEarned,
+//     pointsRedeemed
+//   };
+
+//   try {
+//     const res = await fetch('/api/payment', {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify(order),
+//     });
+
+//     if (!res.ok) throw new Error('Failed to place order');
+//     const data = await res.json();
+
+//     await updateUserPoints(currentUser.id, pointsEarned, pointsRedeemed);
+//     await deleteCartItems(currentUser.id);
+
+//     alert(`Payment successful! Tracking number: ${data.trackingNumber}. Points earned: ${data.pointsEarned}`);
+//     window.location.href = 'home.html';
+//   } catch (err) {
+//     console.error(err);
+//     alert('Failed to place order. Please try again.');
+//   }
+// }
 
 // Event listeners
 document.getElementById('redeemCoinsSwitch').addEventListener('change', updateTotalAmount);
-document.getElementById('doneBtn').addEventListener('click', () => {
-    const promoCode = getUrlParameter('promoCode');
-    saveOrder(firebase.auth().currentUser, promoCode);
-});
-document.getElementById('backToCartBtn').addEventListener('click', navigateBackToCart);
+// document.getElementById('doneBtn').addEventListener('click', saveOrder);
+document.getElementById('backToCartBtn').addEventListener('click', () => window.location.href = 'cart.html');
+
+// Initial fetch of user data and cart
+fetchUserDetails(currentUser.id);
+fetchCartItems(currentUser.id);
