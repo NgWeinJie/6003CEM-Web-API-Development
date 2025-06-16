@@ -12,7 +12,7 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://User:1234@cluster0.oro
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// === MONGOOSE (for orders) ===
+// === MONGOOSE (for orders and products) ===
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -42,6 +42,17 @@ const orderSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 });
 const Order = mongoose.model('Order', orderSchema);
+
+// Product Schema (Mongoose) - Added for MongoDB product queries
+const productSchema = new mongoose.Schema({
+  title: { type: String, required: true, unique: true },
+  description: String,
+  price: { type: Number, required: true },
+  stock: { type: Number, required: true },
+  category: { type: String, required: true },
+  images: [String]
+});
+const Product = mongoose.model('Product', productSchema);
 
 const userSchema = new mongoose.Schema({
   firebaseUid: { type: String, unique: true, required: true },  // your UID from Firebase
@@ -85,6 +96,63 @@ app.use('/image', express.static(path.join(__dirname, 'image')));
 // === ROOT ROUTE ===
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'html', 'home.html'));
+});
+
+// === PRODUCT APIs ===
+// Get all products by category
+app.get('/api/products/categories', async (req, res) => {
+  try {
+    const categories = ["groceries", "beauty", "furniture", "fragrances"];
+    const result = {};
+    
+    for (const category of categories) {
+      const products = await Product.find({ category }).lean();
+      result[category] = products;
+    }
+    
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('❌ Error fetching products by categories:', error);
+    res.status(500).json({ error: 'Failed to fetch products by categories' });
+  }
+});
+
+// Get single product by ID
+app.get('/api/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid product ID format' });
+    }
+    
+    const product = await Product.findById(id).lean();
+    
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    res.status(200).json(product);
+  } catch (error) {
+    console.error('❌ Error fetching product:', error);
+    res.status(500).json({ error: 'Failed to fetch product' });
+  }
+});
+
+// Search products by title
+app.get('/api/products/search/:query', async (req, res) => {
+  try {
+    const { query } = req.params;
+    const products = await Product.find({
+      title: { $regex: query, $options: 'i' }
+    }).lean();
+    
+    res.status(200).json({ products });
+  } catch (error) {
+    console.error('❌ Error searching products:', error);
+    res.status(500).json({ error: 'Failed to search products' });
+  }
 });
 
 // server.js or routes/payment.js

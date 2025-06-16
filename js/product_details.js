@@ -9,20 +9,24 @@ const productStockElement = document.getElementById('productStock');
 const productDetailsElement = document.getElementById('productDetails');
 const quantityInput = document.getElementById('quantity');
 
-// Function to fetch product details from DummyJSON API
+// Function to fetch product details
 async function fetchProductDetails(productId) {
     try {
-        const response = await fetch(`https://dummyjson.com/products/${productId}`);
-        if (!response.ok) throw new Error('Product not found');
+        const response = await fetch(`/api/products/${productId}`);
+        
+        if (!response.ok) {
+            throw new Error('Product not found');
+        }
 
         const product = await response.json();
 
         // Display product details in the DOM
         productNameElement.textContent = product.title;
-        productImageElement.src = product.thumbnail || product.images?.[0] || '';
+        productImageElement.src = product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image';
         productPriceElement.textContent = `Price: RM ${product.price.toFixed(2)}`;
         productStockElement.textContent = `Stock: ${product.stock}`;
-        productDetailsElement.textContent = product.description;
+        productDetailsElement.textContent = product.description || 'No description available';
+        
     } catch (error) {
         console.error('Error fetching product:', error);
         alert('Failed to load product details.');
@@ -52,21 +56,29 @@ document.getElementById('decreaseQuantity').addEventListener('click', function (
 document.getElementById('addToCart').addEventListener('click', async function () {
     try {
         const quantity = parseInt(quantityInput.value) || 1;
+        const userId = localStorage.getItem('uid');
 
-        // Fetch the product data again for cart submission
-        const response = await fetch(`https://dummyjson.com/products/${productId}`);
+        if (!userId) {
+            alert('Please login before adding to cart.');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // Fetch the product data from your MongoDB API
+        const response = await fetch(`/api/products/${productId}`);
         if (!response.ok) throw new Error('Failed to fetch product for cart');
 
         const product = await response.json();
 
         const cartItem = {
-            productId: product.id,
+            userId: userId,
+            productId: product._id,
             productName: product.title,
             productPrice: product.price,
-            productBrand: product.brand,
-            productImage: product.images, // Array of image URLs
+            productImage: product.images?.[0],
             productStock: product.stock,
-            productQuantity: quantity
+            productQuantity: quantity,
+            productCategory: product.category
         };
 
         const cartResponse = await fetch('/api/cart', {
