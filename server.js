@@ -227,8 +227,12 @@ app.post('/api/payment', async (req, res) => {
 });
 
 app.get('/api/orders', async (req, res) => {
+  const userId = req.query.userId;
+
   try {
-    const orders = await Order.find().sort({ timestamp: -1 });
+    const filter = userId ? { userId } : {};
+    const orders = await Order.find(filter).sort({ timestamp: -1 });
+
     res.status(200).json(orders);
   } catch (error) {
     console.error('❌ Error fetching orders:', error);
