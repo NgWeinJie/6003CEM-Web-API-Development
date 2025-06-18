@@ -40,7 +40,7 @@ strong {
 
 /* Navbar */
 .navbar {
-    background-color: #343a40;
+    background-color: #392613 !important;
 }
 
 .navbar-brand {
@@ -66,7 +66,7 @@ strong {
 
 /* Footer */
 footer {
-    background-color: #343a40;
+    background-color: #392613;
     color: white;
     text-align: center;
     padding: 1rem 0;
@@ -74,7 +74,7 @@ footer {
 
 .footer-container {
     padding: 20px; /* Add padding for space around the content */
-    background-color: #343a40; /* Set background color */
+    background-color: #392613; /* Set background color */
     color: white; /* Set text color */
     border-radius: 10px; /* Add border radius for rounded corners */
 }
