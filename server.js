@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { MongoClient, ObjectId } = require('mongodb');
 const cors = require('cors');
 const axios = require('axios');
+const multer = require('multer');
 require('dotenv').config();
 
 const app = express();
@@ -20,7 +21,7 @@ mongoose.connect(MONGO_URI, {
   .then(() => console.log('✅ Connected to MongoDB (Mongoose)'))
   .catch(err => console.error('❌ Mongoose connection error:', err));
 
-// Order Schema (Mongoose)
+// Order Schema
 const orderSchema = new mongoose.Schema({
   userId: String,
   userName: String,
@@ -43,7 +44,7 @@ const orderSchema = new mongoose.Schema({
 });
 const Order = mongoose.model('Order', orderSchema);
 
-// Product Schema (Mongoose) - Added for MongoDB product queries
+// Product Schema
 const productSchema = new mongoose.Schema({
   title: { type: String, required: true, unique: true },
   description: String,
@@ -54,6 +55,7 @@ const productSchema = new mongoose.Schema({
 });
 const Product = mongoose.model('Product', productSchema);
 
+// User Schema
 const userSchema = new mongoose.Schema({
   firebaseUid: { type: String, unique: true, required: true },  // your UID from Firebase
   email: { type: String, required: true },
@@ -69,6 +71,19 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
+// Recipe Schema
+const RecipeSchema = new mongoose.Schema({
+  productId: mongoose.Schema.Types.ObjectId,
+  title: String,
+  recipes: [{
+    id: Number,
+    title: String,
+    image: String,
+    sourceUrl: String
+  }]
+});
+
+const Recipe = mongoose.model('Recipe', RecipeSchema);
 
 // === NATIVE MONGODB CLIENT (for cart, users, etc.) ===
 const client = new MongoClient(MONGO_URI);
@@ -85,6 +100,7 @@ async function connectDB() {
 // === MIDDLEWARE ===
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // === STATIC FILES ===
 app.use(express.static(path.join(__dirname, 'html')));
@@ -152,6 +168,189 @@ app.get('/api/products/search/:query', async (req, res) => {
   } catch (error) {
     console.error('❌ Error searching products:', error);
     res.status(500).json({ error: 'Failed to search products' });
+  }
+});
+
+// === MANAGE PRODUCTS ===
+// Get all products
+app.get('/api/products', async (req, res) => {
+  try {
+    const products = await Product.find();
+    res.json(products);
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
+// Update a product
+app.put('/api/products/:id', async (req, res) => {
+  const { id } = req.params;
+  const { title, description, price, stock, category } = req.body;
+
+  try {
+    const product = await Product.findByIdAndUpdate(
+      id,
+      { title, description, price, stock, category },
+      { new: true }
+    );
+    if (!product) return res.status(404).json({ error: 'Product not found' });
+    res.json(product);
+  } catch (err) {
+    console.error('Error updating product:', err);
+    res.status(500).json({ error: 'Failed to update product' });
+  }
+});
+
+// Delete a product
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    const deleted = await Product.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Product not found' });
+    res.json({ message: 'Product deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting product:', err);
+    res.status(500).json({ error: 'Failed to delete product' });
+  }
+});
+
+// === ADD PRODUCTS ===
+// Use memory storage for multer
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+// Serve static files
+app.use(express.static("html"));
+
+// API endpoint to handle form submission
+app.post("/api/products", upload.single("images"), async (req, res) => {
+  try {
+    const { title, description, price, stock, category } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !price || !stock || !category) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    const allowedCategories = ["groceries", "beauty", "furniture", "fragrances"];
+    if (!allowedCategories.includes(category.toLowerCase())) {
+      return res.status(400).json({ error: "Invalid category" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: "Image is required" });
+    }
+
+    // Check for duplicate product title
+    const existingProduct = await Product.findOne({ title });
+    if (existingProduct) {
+      return res.status(409).json({ error: "Product with the same title already exists" });
+    }
+
+    const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
+    const newProduct = new Product({
+      title,
+      description,
+      price: parseFloat(price),
+      stock: parseInt(stock),
+      category,
+      images: [base64Image]
+    });
+
+    await newProduct.save();
+    res.status(201).json({ message: "Product added successfully" });
+
+  } catch (error) {
+    console.error("❌ Error saving product:", error);
+    res.status(500).json({ error: "Failed to add item. Please try again." });
+  }
+});
+
+// === FOOD RECIPE APIs ===
+const SPOONACULAR_API_KEY = 'c1e4b2cdb5d04c01835f1ec26f8145cb';
+
+// API route to fetch & store recipe based on product ID
+// Helper: check if an image URL is valid (returns 200)
+const imageExists = async (url) => {
+  try {
+    const res = await axios.head(url);
+    return res.status === 200;
+  } catch {
+    return false;
+  }
+};
+
+app.get('/api/recipes/product/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const product = await Product.findById(id);
+    if (!product) return res.status(404).json({ error: 'Product not found' });
+
+    // Only allow "Groceries" category
+    if (product.category.toLowerCase() !== 'groceries') {
+      return res.status(200).json([]); // Return blank for non-groceries
+    }
+
+    // Return from cache if exists
+    const existing = await Recipe.findOne({ productId: product._id });
+    if (existing) return res.status(200).json(existing.recipes);
+
+    // Step 1: Search recipes by product title
+    const searchUrl = `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(product.title)}&number=10&apiKey=${SPOONACULAR_API_KEY}`;
+    const searchRes = await axios.get(searchUrl);
+
+    const productWords = product.title.toLowerCase().split(/\s+/);
+    const recipes = [];
+
+    // Step 2: Fetch recipe details with filtering
+    for (const r of searchRes.data.results) {
+      if (recipes.length >= 3) break;
+
+      try {
+        const infoUrl = `https://api.spoonacular.com/recipes/${r.id}/information?includeNutrition=false&apiKey=${SPOONACULAR_API_KEY}`;
+        const detailRes = await axios.get(infoUrl);
+        const details = detailRes.data;
+
+        const titleLower = details.title.toLowerCase();
+        const matchesWord = productWords.some(word => titleLower.includes(word));
+        if (!matchesWord) continue;
+
+        const imgUrl = details.image || '';
+        const isImageValid = imgUrl && imgUrl.startsWith('http');
+
+        if (!isImageValid) continue;
+
+        // Optional: Validate image exists (skip broken ones)
+        const imageOK = await axios.head(imgUrl).then(r => r.status === 200).catch(() => false);
+        if (!imageOK) continue;
+
+        recipes.push({
+          id: details.id,
+          title: details.title,
+          image: imgUrl,
+          sourceUrl: details.sourceUrl
+        });
+
+      } catch (e) {
+        console.warn(`⚠️ Skipping recipe ${r.id}:`, e.message);
+      }
+    }
+
+    // ✅ Save to DB
+    const newRecipe = new Recipe({
+      productId: product._id,
+      title: product.title,
+      recipes
+    });
+
+    await newRecipe.save();
+    res.status(200).json(recipes);
+
+  } catch (error) {
+    console.error('❌ Recipe fetch error:', error.message || error);
+    res.status(500).json({ error: 'Failed to get recipes' });
   }
 });
 
