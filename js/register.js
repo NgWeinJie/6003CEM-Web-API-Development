@@ -14,11 +14,14 @@ async function registerUserWithApi(email, password) {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error.message || 'Failed to register user');
+    const errorData = await response.json();
+    throw new Error(errorData.error.message || 'Failed to register user');
   }
 
-  return response.json(); // Returns idToken, localId, etc.
+  const data = await response.json();
+
+  localStorage.setItem('idToken', data.idToken);  
+  return data; 
 }
 
 // Function to send email verification
