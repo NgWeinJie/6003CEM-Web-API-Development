@@ -1,9 +1,9 @@
 
-const firebaseApiKey = "AIzaSyDCdP64LQYeS4vu3lFH7XtUHOPVJOYCbO8";
+const ApiKey = "AIzaSyBHl8xfPt6Mql2_9nDrJV7A-QsVyGOiZew";
 
 // Function to register user with Firebase Auth using REST
 async function registerUserWithApi(email, password) {
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseApiKey}`, {
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${ApiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -14,19 +14,16 @@ async function registerUserWithApi(email, password) {
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error.message || 'Failed to register user');
+    const error = await response.json();
+    throw new Error(error.error.message || 'Failed to register user');
   }
 
-  const data = await response.json();
-
-  localStorage.setItem('idToken', data.idToken);  
-  return data; 
+  return response.json(); // Returns idToken, localId, etc.
 }
 
 // Function to send email verification
 async function sendVerificationEmail(idToken) {
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseApiKey}`, {
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${ApiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
