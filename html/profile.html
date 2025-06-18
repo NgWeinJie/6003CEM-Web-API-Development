@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,18 +12,21 @@
     <!-- Custom CSS -->
     <link href="css/profile.css" rel="stylesheet">
 </head>
+
 <body>
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="home.html">Home</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <a class="navbar-brand" href="/home.html">Home</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownProducts" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownProducts" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         Products
                     </a>
                     <div class="dropdown-menu" aria-labelledby="navbarDropdownProducts">
@@ -39,27 +43,27 @@
                         <a class="dropdown-item" href="#Sundry">Sundry</a>
                     </div>
                 <li class="nav-item">
-                    <a class="nav-link" href="about_us.html">About Us</a>
+                    <a class="nav-link" href="/about_us.html">About Us</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="orderHistory.html">Order History</a>
+                    <a class="nav-link" href="/orderHistory.html">Order History</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="coins_rewards.html">Coins Rewards</a>
+                    <a class="nav-link" href="/coins_rewards.html">Coins Rewards</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="profile.html">Profile</a>
+                    <a class="nav-link" href="/profile.html">Profile</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="contact_us.html">Contact Us</a>
+                    <a class="nav-link" href="/contact_us.html">Contact Us</a>
                 </li>
             </ul>
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link" href="cart.html"><i class="fas fa-shopping-cart"></i> Add to Cart</a>
+                    <a class="nav-link" href="/cart.html"><i class="fas fa-shopping-cart"></i> Add to Cart</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="login.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    <a class="nav-link" href="/login.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </li>
             </ul>
         </div>
@@ -70,7 +74,8 @@
         <div class="row justify-content-center">
             <div class="col-md-8">
                 <div class="card">
-                    <div class="card-header bg-primary text-white text-center">
+                    <div class="card-header bg-primary text-white text-center"
+                        style="background-color: #392613 !important;">
                         User Profile
                     </div>
                     <div class="card-body" id="userData">
@@ -82,17 +87,20 @@
                         <p><strong>City:</strong> <span id="userCity"></span></p>
                         <p><strong>State:</strong> <span id="userState"></span></p>
                         <p><strong>Coins Balance:</strong> <span id="coinsBalance"></span></p>
+                        <button type="button" class="btn btn-primary mt-5" data-toggle="modal"
+                            data-target="#editProfileModal">Edit Details</button>
                     </div>
-                    <div class="card-footer">
-                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#editProfileModal">Edit Details</button>
-                    </div>
+                    <!-- <div class="card-footer">
+                        <button type="button" class="btn btn-primary btn-editProfile" data-toggle="modal" data-target="#editProfileModal">Edit Details</button>
+                    </div> -->
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Edit Profile Modal -->
-    <div class="modal fade" id="editProfileModal" tabindex="-1" role="dialog" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal fade" id="editProfileModal" tabindex="-1" role="dialog" aria-labelledby="editProfileModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -130,7 +138,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="submit" class="btn btn-primary" id="submit">Save Changes</button>
                     </div>
                 </form>
             </div>
@@ -144,10 +152,11 @@
             <div class="row">
                 <div class="col-md-4">
                     <h5>FAQ</h5>
-                    <p>Don't understand or have any problems, click<span class="footer-link"><a href="facts_questions.html">HERE</a></span></p>
+                    <p>Don't understand or have any problems, click<span class="footer-link"><a
+                                href="/facts_questions.html">HERE</a></span></p>
                     <h5>Terms & Conditions</h5>
-                    <p>Review the terms & conditions, click<span class="footer-link"><a href="terms_conditions.html">HERE</a></span></p>
-
+                    <p>Review the terms & conditions, click<span class="footer-link"><a
+                                href="/terms_conditions.html">HERE</a></span></p>
                 </div>
                 <div class="col-md-4">
                     <h5>Contact Us</h5>
@@ -183,4 +192,5 @@
     <!-- Custom JavaScript -->
     <script src="js/profile.js"></script>
 </body>
+
 </html>
