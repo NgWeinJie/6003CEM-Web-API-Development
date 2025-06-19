@@ -6,7 +6,6 @@ const cors = require('cors');
 const axios = require('axios');
 const multer = require('multer');
 require('dotenv').config();
-const multer = require('multer');
 const fs = require('fs');
 
 const app = express();
@@ -20,7 +19,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
+const diskStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
   },
@@ -29,9 +28,13 @@ const storage = multer.diskStorage({
     const uid = req.uid || 'default';
     cb(null, `${uid}${ext}`);
   }
-
 });
-const upload = multer({ storage });
+
+const memoryStorage = multer.memoryStorage();
+
+// Create upload instances for different purposes
+const uploadToDisk = multer({ storage: diskStorage });
+const uploadToMemory = multer({ storage: memoryStorage });
 
 // === MONGOOSE (for orders and products) ===
 mongoose.connect(MONGO_URI, {
@@ -235,15 +238,11 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 // === ADD PRODUCTS ===
-// Use memory storage for multer
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
-
 // Serve static files
 app.use(express.static("html"));
 
 // API endpoint to handle form submission
-app.post("/api/products", upload.single("images"), async (req, res) => {
+app.post("/api/products", uploadToMemory.single("images"), async (req, res) => {
   try {
     const { title, description, price, stock, category } = req.body;
 
@@ -497,7 +496,7 @@ app.use('/uploads', express.static('uploads'));
 app.put('/api/users/:userId', (req, res, next) => {
   req.uid = req.params.userId; // make UID available to multer
   next();
-}, upload.single('profilePic'), async (req, res) => {
+}, uploadToDisk.single('profilePic'), async (req, res) => {
   try {
     const db = client.db(dbName);
     const users = db.collection('users');
@@ -530,7 +529,7 @@ app.put('/api/users/:userId', (req, res, next) => {
 });
 
 // Combined PUT route
-app.put('/api/users/:uid', upload.single('profilePic'), async (req, res) => {
+app.put('/api/users/:uid', uploadToDisk.single('profilePic'), async (req, res) => {
   const uid = req.params.uid.trim();
   const {
     email,
