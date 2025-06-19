@@ -1,16 +1,23 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyDCdP64LQYeS4vu3lFH7XtUHOPVJOYCbO8",
-    authDomain: "enterprise-project-3448b.firebaseapp.com",
-    databaseURL: "https://enterprise-project-3448b-default-rtdb.firebaseio.com",
-    projectId: "enterprise-project-3448b",
-    storageBucket: "enterprise-project-3448b.appspot.com",
-    messagingSenderId: "1042464271522",
-    appId: "1:1042464271522:web:1d1a3ffadf6830b5767bfb",
-    measurementId: "G-3S19G51X7T"
-};
+const ApiKey = "AIzaSyBHl8xfPt6Mql2_9nDrJV7A-QsVyGOiZew";
 
-// Initialize Firebase app
-firebase.initializeApp(firebaseConfig);
+// Function to send password reset email using Firebase REST API
+async function sendPasswordResetEmail(email) {
+    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${ApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            requestType: "PASSWORD_RESET",
+            email
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error.message || 'Failed to send password reset email');
+    }
+
+    return response.json();
+}
 
 function validation() {
     // Get the input field value
@@ -19,7 +26,6 @@ function validation() {
     // Regular expression for email validation
     const isEmailValid = (email) => email.includes('@') && email.includes('.');
 
-    // Error message
     const errorMessages = {
         user_email: 'Email must be valid.'
     };
@@ -38,41 +44,35 @@ function validation() {
         }
     }
 
-    // Check the email field for validation
     const isValidEmail = validateField('user_email', isEmailValid, errorMessages.user_email);
 
-    // Log error status and return true if the email field passes validation, otherwise false
     return isValidEmail;
 }
 
-function resetPassword() {
+// Updated resetPassword function using REST API
+async function resetPassword() {
     const email = document.getElementById('user_email').value;
 
-    firebase.auth().sendPasswordResetEmail(email)
-        .then(() => {
-            alert('Password reset email sent! Please check your email inbox.');
-            // Redirect to login page or home page after sending reset email
-            window.location.href = 'login.html';
-        })
-        .catch((error) => {
-            alert('Failed to send password reset email: ' + error.message);
-        });
+    try {
+        await sendPasswordResetEmail(email);
+        alert('Password reset email sent! Please check your email inbox.');
+        // Redirect to login page after sending reset email
+        window.location.href = 'login.html';
+    } catch (error) {
+        alert('Failed to send password reset email: ' + error.message);
+    }
 }
 
 // Get the Reset button element
 const resetBtn = document.getElementById('resetBtn');
 
-// Attach an event listener to the Reset button
 resetBtn.addEventListener('click', function(event) {
-    // Prevent the default form submission behavior
     event.preventDefault();
 
-    // Trigger validation for the email field
     if (validation()) {
         // If validation passes, proceed with sending password reset email
         resetPassword();
     } else {
-        // If validation fails, add Bootstrap's was-validated class to the form
         const form = document.getElementById('resetPasswordForm');
         form.classList.add('was-validated');
     }

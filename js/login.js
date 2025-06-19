@@ -1,4 +1,4 @@
-const firebaseApiKey = "AIzaSyDCdP64LQYeS4vu3lFH7XtUHOPVJOYCbO8";
+const ApiKey = "AIzaSyBHl8xfPt6Mql2_9nDrJV7A-QsVyGOiZew";
 
 function validation() {
     const email = document.getElementById('user_email').value.trim();
@@ -43,7 +43,7 @@ async function loginUser() {
 
     try {
         //Sign in with email and password
-        const signInResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseApiKey}`, {
+        const signInResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${ApiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -61,7 +61,7 @@ async function loginUser() {
         const signInData = await signInResponse.json();
 
         // Check if email is verified using accounts:lookup
-        const lookupResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseApiKey}`, {
+        const lookupResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${ApiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idToken: signInData.idToken })
