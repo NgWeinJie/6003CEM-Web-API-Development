@@ -6,12 +6,32 @@ const cors = require('cors');
 const axios = require('axios');
 const multer = require('multer');
 require('dotenv').config();
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://User:1234@cluster0.oro1vef.mongodb.net/webApi';
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+const uploadDir = path.join(__dirname, 'uploads', 'profile-pics');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uid = req.uid || 'default';
+    cb(null, `${uid}${ext}`);
+  }
+
+});
+const upload = multer({ storage });
 
 // === MONGOOSE (for orders and products) ===
 mongoose.connect(MONGO_URI, {
@@ -472,32 +492,152 @@ app.get('/api/users/:userId', async (req, res) => {
   }
 });
 
-app.put('/api/users/:uid', async (req, res) => {
-  const uid = req.params.uid;
-  const updatedData = req.body; // Contains fields like email, address, phoneNumber, etc.
+app.use('/uploads', express.static('uploads'));
+
+app.put('/api/users/:userId', (req, res, next) => {
+  req.uid = req.params.userId; // make UID available to multer
+  next();
+}, upload.single('profilePic'), async (req, res) => {
+  try {
+    const db = client.db(dbName);
+    const users = db.collection('users');
+
+    const uid = req.params.userId.trim(); // Clean input
+    console.log('UID:', uid);
+
+    const user = await users.findOne({ uid: uid });
+    if (!user) {
+      console.log('❌ User not found in MongoDB');
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const updateData = {};
+    if (req.file) {
+      updateData.profilePic = `/uploads/profile-pics/${req.file.filename}`;
+    }
+
+    const result = await users.findOneAndUpdate(
+      { uid: uid },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+
+    res.json({ success: true, user: result.value });
+  } catch (err) {
+    console.error('Error during update:', err);
+    res.status(500).json({ success: false, message: 'Update failed' });
+  }
+});
+
+// Combined PUT route
+app.put('/api/users/:uid', upload.single('profilePic'), async (req, res) => {
+  const uid = req.params.uid.trim();
+  const {
+    email,
+    address,
+    phoneNumber,
+    postcode,
+    city,
+    state
+  } = req.body;
 
   try {
     await client.connect();
     const db = client.db(dbName);
     const users = db.collection('users');
 
-    const result = await users.updateOne(
-      { uid: uid }, // Filter by user UID
-      { $set: updatedData } // Update the fields sent in request body
-    );
+    const updateData = {
+      ...(email && { email }),
+      ...(address && { address }),
+      ...(phoneNumber && { phoneNumber }),
+      ...(postcode && { postcode }),
+      ...(city && { city }),
+      ...(state && { state }),
+    };
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ message: 'User not found' });
+    if (req.file) {
+      updateData.profilePic = `/uploads/profile-pics/${req.file.filename}`;
     }
 
-    res.status(200).json({ message: 'User updated successfully' });
+    const result = await users.findOneAndUpdate(
+      { uid: uid },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+
+    if (!result.value) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'User updated successfully',
+      user: result.value
+    });
+
   } catch (error) {
     console.error('❌ Error updating user:', error);
-    res.status(500).json({ message: 'Failed to update user', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to update user', error: error.message });
   } finally {
     await client.close();
   }
 });
+
+app.delete('/api/users/:userId/profile-pic', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const db = await connectDB();
+    const users = db.collection('users');
+
+    const user = await users.findOne({ uid: userId });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Remove file from disk if it's a custom image
+    if (user.profilePic && !user.profilePic.includes('default.jpg')) {
+      const imagePath = path.join(__dirname, user.profilePic);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
+    // Set profilePic to default
+    await users.updateOne({ uid: userId }, { $set: { profilePic: '/uploads/profile-pics/default.jpg' } });
+
+    res.json({ success: true, imageUrl: '/uploads/profile-pics/default.jpg' });
+  } catch (error) {
+    console.error('Error deleting profile image:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete image' });
+  }
+});
+// app.put('/api/users/:uid', async (req, res) => {
+//   const uid = req.params.uid;
+//   const updatedData = req.body; // Contains fields like email, address, phoneNumber, etc.
+
+//   try {
+//     await client.connect();
+//     const db = client.db(dbName);
+//     const users = db.collection('users');
+
+//     const result = await users.updateOne(
+//       { uid: uid }, // Filter by user UID
+//       { $set: updatedData } // Update the fields sent in request body
+//     );
+
+//     if (result.matchedCount === 0) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     res.status(200).json({ message: 'User updated successfully' });
+//   } catch (error) {
+//     console.error('❌ Error updating user:', error);
+//     res.status(500).json({ message: 'Failed to update user', error: error.message });
+//   } finally {
+//     await client.close();
+//   }
+// });
 
 // === USER POINTS API ===
 app.patch('/api/users/:userId/points', async (req, res) => {
