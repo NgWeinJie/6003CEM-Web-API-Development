@@ -1,9 +1,9 @@
 
-const firebaseApiKey = "AIzaSyDCdP64LQYeS4vu3lFH7XtUHOPVJOYCbO8";
+const ApiKey = "AIzaSyBHl8xfPt6Mql2_9nDrJV7A-QsVyGOiZew";
 
 // Function to register user with Firebase Auth using REST
 async function registerUserWithApi(email, password) {
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseApiKey}`, {
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${ApiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -23,7 +23,7 @@ async function registerUserWithApi(email, password) {
 
 // Function to send email verification
 async function sendVerificationEmail(idToken) {
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseApiKey}`, {
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${ApiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

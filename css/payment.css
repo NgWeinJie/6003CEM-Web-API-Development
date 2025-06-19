@@ -1,14 +1,19 @@
 /* Add your custom styles for the profile page */
-body{
+body {
     background-color: #F8F8F8 !important;
 }
+
 /* Main container */
 .container {
-    max-width: 900px; /* Increased the max-width for better layout */
+    max-width: 900px;
+    /* Increased the max-width for better layout */
     margin: 30px auto;
-    padding: 20px; /* Add padding for space around the content */
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Add box shadow */
-    border-radius: 10px; /* Add border radius for rounded corners */
+    padding: 20px;
+    /* Add padding for space around the content */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    /* Add box shadow */
+    border-radius: 10px;
+    /* Add border radius for rounded corners */
     background-color: white;
 }
 
@@ -22,12 +27,14 @@ body{
 }
 
 #userDetailsForm .form-control {
-    width: 750px; /* Adjust the width as needed */
-    max-width: 100%; /* Ensure it does not exceed the container's width */
+    width: 750px;
+    /* Adjust the width as needed */
+    max-width: 100%;
+    /* Ensure it does not exceed the container's width */
 }
 
 .qr-payment-container {
-    margin-left: -20px; 
+    margin-left: -20px;
 }
 
 /* Profile details */
@@ -44,7 +51,8 @@ h2 {
 }
 
 .payment-section h5 {
-    color: #007bff; /* Bootstrap 'btn-primary' color - color: #28a745;*/
+    color: #007bff;
+    /* Bootstrap 'btn-primary' color - color: #28a745;*/
 }
 
 /* User details */
@@ -53,9 +61,11 @@ p {
 }
 
 .container p {
-    max-width: 800px; /* Adjust the maximum width of the paragraphs */
+    max-width: 800px;
+    /* Adjust the maximum width of the paragraphs */
     margin-bottom: 20px;
-    margin-left: 10px; /* Add margin to the left */
+    margin-left: 10px;
+    /* Add margin to the left */
 }
 
 /* Strong tags for labels */
@@ -82,7 +92,7 @@ strong {
 
 .add-to-cart {
     position: absolute;
-    bottom: 10px; 
+    bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
     width: 90%;
@@ -98,31 +108,40 @@ footer {
 }
 
 .footer-container {
-    padding: 20px; /* Add padding for space around the content */
-    background-color: #392613; /* Set background color */
-    color: white; /* Set text color */
-    border-radius: 10px; /* Add border radius for rounded corners */
+    padding: 20px;
+    /* Add padding for space around the content */
+    background-color: #392613;
+    /* Set background color */
+    color: white;
+    /* Set text color */
+    border-radius: 10px;
+    /* Add border radius for rounded corners */
 }
 
 .footer-container h5 {
-    color: #ffffff; /* Set heading color */
+    color: #ffffff;
+    /* Set heading color */
 }
 
 .footer-container p {
-    color: #ffffff; /* Set paragraph text color */
+    color: #ffffff;
+    /* Set paragraph text color */
 }
 
 .footer-container a {
-    color: #ffffff; /* Set link color */
+    color: #ffffff;
+    /* Set link color */
 }
 
 .footer-container a:hover {
-    color: #f8f9fa; /* Set link hover color */
+    color: #f8f9fa;
+    /* Set link hover color */
 }
 
 .footer-link {
     display: inline-block;
-    margin-left: 5px; /* Adjust the spacing between text and link */
+    margin-left: 5px;
+    /* Adjust the spacing between text and link */
 }
 
 /* Adjusted margin for card */
@@ -137,7 +156,8 @@ footer {
     width: 40px;
     height: 20px;
     vertical-align: middle;
-    margin-left: 10px; /* Adjust margin as needed */
+    margin-left: 10px;
+    /* Adjust margin as needed */
 }
 
 .switch input {
@@ -170,25 +190,51 @@ footer {
     border-radius: 50%;
 }
 
-input:checked + .slider {
+input:checked+.slider {
     background-color: #4CAF50;
 }
 
-input:checked + .slider:before {
-    transform: translateX(20px); /* Adjust position as needed */
+input:checked+.slider:before {
+    transform: translateX(20px);
+    /* Adjust position as needed */
 }
 
 .gold {
-    color: gold; /* Adjust to your desired yellow or gold color */
+    color: gold;
+    /* Adjust to your desired yellow or gold color */
 }
 
-.btn-success{
+.btn-success {
     background-color: #734d26;
     color: white;
     border: none;
 }
 
-.btn-success:hover{
+.btn-success:hover {
     background-color: #ac7339;
     color: white;
+}
+
+.tab {
+    overflow: hidden;
+    border-bottom: 1px solid #ccc;
+}
+
+.tab button {
+    background-color: inherit;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+}
+
+.tab button.active {
+    border-bottom: 3px solid #007bff;
+    font-weight: bold;
+}
+
+.tabcontent {
+    display: none;
+    padding: 16px 0;
 }

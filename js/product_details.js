@@ -9,24 +9,77 @@ const productStockElement = document.getElementById('productStock');
 const productDetailsElement = document.getElementById('productDetails');
 const quantityInput = document.getElementById('quantity');
 
-// Function to fetch product details from DummyJSON API
+// Function to fetch product details
 async function fetchProductDetails(productId) {
     try {
-        const response = await fetch(`https://dummyjson.com/products/${productId}`);
-        if (!response.ok) throw new Error('Product not found');
+        const response = await fetch(`/api/products/${productId}`);
+        
+        if (!response.ok) {
+            throw new Error('Product not found');
+        }
 
         const product = await response.json();
 
         // Display product details in the DOM
         productNameElement.textContent = product.title;
-        productImageElement.src = product.thumbnail || product.images?.[0] || '';
+        productImageElement.src = product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image';
         productPriceElement.textContent = `Price: RM ${product.price.toFixed(2)}`;
         productStockElement.textContent = `Stock: ${product.stock}`;
-        productDetailsElement.textContent = product.description;
+        productDetailsElement.textContent = product.description || 'No description available';
+
+        // Fetch recipes
+        const recipeContainer = document.getElementById('recipeContainer');
+        fetchRecipesByIngredient(product._id, recipeContainer, product.category);
+        
     } catch (error) {
         console.error('Error fetching product:', error);
         alert('Failed to load product details.');
     }
+}
+
+async function fetchRecipesByIngredient(productId, containerElement, category) {
+  try {
+    const response = await fetch(`/api/recipes/product/${productId}`);
+    if (!response.ok) throw new Error('Failed to fetch recipes');
+
+    const data = await response.json();
+
+    // If not Groceries, show nothing at all
+    if (category.toLowerCase() !== 'groceries') {
+      containerElement.innerHTML = '';
+      return;
+    }
+
+    // Show message if no recipes found
+    if (!Array.isArray(data) || data.length === 0) {
+      containerElement.innerHTML = '<h5 class="mb-3">No recipes found.</h5>';
+      return;
+    }
+
+    // Render recipes
+    const recipeCards = data
+      .filter(recipe => recipe.image)
+      .map(recipe => `
+        <div class="col-md-4 mb-4">
+          <div class="card h-100">
+            <img src="${recipe.image}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${recipe.title}">
+            <div class="card-body d-flex flex-column">
+              <h6 class="card-title">${recipe.title}</h6>
+              <a href="${recipe.sourceUrl}" target="_blank" class="btn btn-sm btn-outline-primary mt-auto">View Recipe</a>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+    containerElement.innerHTML = `
+      <h5 class="mb-3">Related Recipe: </h5>
+      <div class="row">${recipeCards}</div>
+    `;
+
+  } catch (error) {
+    console.error('Error fetching recipes:', error);
+    containerElement.innerHTML = ''; // Hide all on error
+  }
 }
 
 // Call the function to fetch and display product details
@@ -52,21 +105,29 @@ document.getElementById('decreaseQuantity').addEventListener('click', function (
 document.getElementById('addToCart').addEventListener('click', async function () {
     try {
         const quantity = parseInt(quantityInput.value) || 1;
+        const userId = localStorage.getItem('uid');
 
-        // Fetch the product data again for cart submission
-        const response = await fetch(`https://dummyjson.com/products/${productId}`);
+        if (!userId) {
+            alert('Please login before adding to cart.');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // Fetch the product data from your MongoDB API
+        const response = await fetch(`/api/products/${productId}`);
         if (!response.ok) throw new Error('Failed to fetch product for cart');
 
         const product = await response.json();
 
         const cartItem = {
-            productId: product.id,
+            userId: userId,
+            productId: product._id,
             productName: product.title,
             productPrice: product.price,
-            productBrand: product.brand,
-            productImage: product.images, // Array of image URLs
+            productImage: product.images?.[0],
             productStock: product.stock,
-            productQuantity: quantity
+            productQuantity: quantity,
+            productCategory: product.category
         };
 
         const cartResponse = await fetch('/api/cart', {
