@@ -72,7 +72,7 @@ async function fetchRecipesByIngredient(productId, containerElement, category) {
       `).join('');
 
     containerElement.innerHTML = `
-      <h5 class="mb-3">Groceries</h5>
+      <h5 class="mb-3">Related Recipe: </h5>
       <div class="row">${recipeCards}</div>
     `;
 
