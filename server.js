@@ -1,3 +1,4 @@
+
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -14,26 +15,29 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://User:1234@cluster0.oro
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
+// Ensure the directory exists
 const uploadDir = path.join(__dirname, 'uploads', 'profile-pics');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const diskStorage = multer.diskStorage({
+// Configure multer disk storage
+const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    const uid = req.uid || 'default';
-    cb(null, `${uid}${ext}`);
+    const uid = req.params.userId || 'default';  // <-- corrected line
+    cb(null, `${uid}${ext}`); // e.g. qfKuk9...jpg
   }
 });
+
+const upload = multer({ storage }); // use this in your route
 
 const memoryStorage = multer.memoryStorage();
 
 // Create upload instances for different purposes
-const uploadToDisk = multer({ storage: diskStorage });
 const uploadToMemory = multer({ storage: memoryStorage });
 
 // === MONGOOSE (for orders and products) ===
@@ -143,12 +147,12 @@ app.get('/api/products/categories', async (req, res) => {
   try {
     const categories = ["groceries", "beauty", "furniture", "fragrances"];
     const result = {};
-    
+
     for (const category of categories) {
       const products = await Product.find({ category }).lean();
       result[category] = products;
     }
-    
+
     res.status(200).json(result);
   } catch (error) {
     console.error('❌ Error fetching products by categories:', error);
@@ -160,18 +164,18 @@ app.get('/api/products/categories', async (req, res) => {
 app.get('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid product ID format' });
     }
-    
+
     const product = await Product.findById(id).lean();
-    
+
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    
+
     res.status(200).json(product);
   } catch (error) {
     console.error('❌ Error fetching product:', error);
@@ -186,7 +190,7 @@ app.get('/api/products/search/:query', async (req, res) => {
     const products = await Product.find({
       title: { $regex: query, $options: 'i' }
     }).lean();
-    
+
     res.status(200).json({ products });
   } catch (error) {
     console.error('❌ Error searching products:', error);
@@ -424,7 +428,6 @@ app.post('/create-payment-intent', async (req, res) => {
   }
 });
 
-
 // === ORDER APIs ===
 app.post('/api/payment', async (req, res) => {
   try {
@@ -493,44 +496,44 @@ app.get('/api/users/:userId', async (req, res) => {
 
 app.use('/uploads', express.static('uploads'));
 
-app.put('/api/users/:userId', (req, res, next) => {
-  req.uid = req.params.userId; // make UID available to multer
-  next();
-}, uploadToDisk.single('profilePic'), async (req, res) => {
-  try {
-    const db = client.db(dbName);
-    const users = db.collection('users');
+// app.put('/api/users/:userId', (req, res, next) => {
+//   req.uid = req.params.userId; // make UID available to multer
+//   next();
+// }, upload.single('profilePic'), async (req, res) => {
+//   try {
+//     const db = client.db(dbName);
+//     const users = db.collection('users');
 
-    const uid = req.params.userId.trim(); // Clean input
-    console.log('UID:', uid);
+//     const uid = req.params.userId.trim(); // Clean input
+//     console.log('UID:', uid);
 
-    const user = await users.findOne({ uid: uid });
-    if (!user) {
-      console.log('❌ User not found in MongoDB');
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+//     const user = await users.findOne({ uid: uid });
+//     if (!user) {
+//       console.log('❌ User not found in MongoDB');
+//       return res.status(404).json({ success: false, message: 'User not found' });
+//     }
 
-    const updateData = {};
-    if (req.file) {
-      updateData.profilePic = `/uploads/profile-pics/${req.file.filename}`;
-    }
+//     const updateData = {};
+//     if (req.file) {
+//       updateData.profilePic = `/uploads/profile-pics/${req.file.filename}`;
+//     }
 
-    const result = await users.findOneAndUpdate(
-      { uid: uid },
-      { $set: updateData },
-      { returnDocument: 'after' }
-    );
+//     const result = await users.findOneAndUpdate(
+//       { uid: uid },
+//       { $set: updateData },
+//       { returnDocument: 'after' }
+//     );
 
-    res.json({ success: true, user: result.value });
-  } catch (err) {
-    console.error('Error during update:', err);
-    res.status(500).json({ success: false, message: 'Update failed' });
-  }
-});
+//     res.json({ success: true, user: result.value });
+//   } catch (err) {
+//     console.error('Error during update:', err);
+//     res.status(500).json({ success: false, message: 'Update failed' });
+//   }
+// });
 
-// Combined PUT route
-app.put('/api/users/:uid', uploadToDisk.single('profilePic'), async (req, res) => {
-  const uid = req.params.uid.trim();
+app.put('/api/users/:userId', upload.single('profilePic'), async (req, res) => {
+  const userId = req.params.userId.trim();
+
   const {
     email,
     address,
@@ -545,6 +548,10 @@ app.put('/api/users/:uid', uploadToDisk.single('profilePic'), async (req, res) =
     const db = client.db(dbName);
     const users = db.collection('users');
 
+    // Optional: Debug check if user exists
+    const checkUser = await users.findOne({ uid: userId });
+    console.log('🔍 Found user:', checkUser);
+
     const updateData = {
       ...(email && { email }),
       ...(address && { address }),
@@ -558,20 +565,32 @@ app.put('/api/users/:uid', uploadToDisk.single('profilePic'), async (req, res) =
       updateData.profilePic = `/uploads/profile-pics/${req.file.filename}`;
     }
 
+    console.log('📝 Update data to save:', updateData);
+
     const result = await users.findOneAndUpdate(
-      { uid: uid },
+      { uid: userId },
       { $set: updateData },
       { returnDocument: 'after' }
     );
 
-    if (!result.value) {
+    let updatedUser = result.value;
+
+    if (!updatedUser) {
+      console.log('⚠️ No change in data — re-fetching user...');
+      updatedUser = await users.findOne({ uid: userId });
+    }
+
+    if (!updatedUser) {
+      console.log('❌ No user found to update.');
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+
+    console.log('✅ Updated user from DB:', updatedUser);
 
     res.status(200).json({
       success: true,
       message: 'User updated successfully',
-      user: result.value
+      user: updatedUser
     });
 
   } catch (error) {
@@ -595,7 +614,7 @@ app.delete('/api/users/:userId/profile-pic', async (req, res) => {
     }
 
     // Remove file from disk if it's a custom image
-    if (user.profilePic && !user.profilePic.includes('default.jpg')) {
+    if (user.profilePic && !user.profilePic.includes('default.png')) {
       const imagePath = path.join(__dirname, user.profilePic);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
@@ -603,14 +622,15 @@ app.delete('/api/users/:userId/profile-pic', async (req, res) => {
     }
 
     // Set profilePic to default
-    await users.updateOne({ uid: userId }, { $set: { profilePic: '/uploads/profile-pics/default.jpg' } });
+    await users.updateOne({ uid: userId }, { $set: { profilePic: '/uploads/profile-pics/default.png' } });
 
-    res.json({ success: true, imageUrl: '/uploads/profile-pics/default.jpg' });
+    res.json({ success: true, imageUrl: '/uploads/profile-pics/default.png' });
   } catch (error) {
     console.error('Error deleting profile image:', error);
     res.status(500).json({ success: false, message: 'Failed to delete image' });
   }
 });
+
 // app.put('/api/users/:uid', async (req, res) => {
 //   const uid = req.params.uid;
 //   const updatedData = req.body; // Contains fields like email, address, phoneNumber, etc.

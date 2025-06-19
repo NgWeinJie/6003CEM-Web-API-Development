@@ -118,56 +118,108 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const updatedData = {
-            email: document.getElementById('emailModal').value,
-            address: document.getElementById('addressModal').value,
-            phoneNumber: document.getElementById('phoneModal').value,
-            postcode: document.getElementById('postcodeModal').value,
-            city: document.getElementById('cityModal').value,
-            state: document.getElementById('stateModal').value
-        };
+        const formData = new FormData();
+        formData.append('email', document.getElementById('emailModal').value);
+        formData.append('address', document.getElementById('addressModal').value);
+        formData.append('phoneNumber', document.getElementById('phoneModal').value);
+        formData.append('postcode', document.getElementById('postcodeModal').value);
+        formData.append('city', document.getElementById('cityModal').value);
+        formData.append('state', document.getElementById('stateModal').value);
+
+        const file = document.getElementById('uploadPic').files[0];
+        if (file) {
+            formData.append('profilePic', file);
+        }
 
         try {
-            const textResponse = await fetch(`/api/users/${userId}`, {
+            const response = await fetch(`/api/users/${userId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedData)
+                body: formData
             });
 
-            const textData = await textResponse.json();
-            if (!textResponse.ok) throw new Error(textData.message || 'Failed to update user info');
+            const result = await response.json();
 
-            console.log("User info updated:", textData.message || 'Success');
+            if (!response.ok) throw new Error(result.message || 'Update failed');
 
-            const fileInput = document.getElementById('uploadPic');
-            const file = fileInput.files[0];
+            console.log("✅ Full response from backend:", result);
 
-            if (file) {
-                const formData = new FormData();
-                formData.append('profilePic', file);
-
-                const imageResponse = await fetch(`/api/users/${userId}`, {
-                    method: 'PUT',
-                    body: formData
-                });
-
-                const imageData = await imageResponse.json();
-                if (!imageResponse.ok) throw new Error(imageData.message || 'Image upload failed');
-
-                if (imageData.imageUrl) {
-                    document.getElementById('profilePic').src = imageData.imageUrl;
-                }
+            // Update profile pic if returned
+            if (result?.user?.profilePic) {
+                document.getElementById('profilePic').src = result.user.profilePic;
             }
 
+            // Optionally refresh profile info
             await fetchAndDisplayUser(userId);
-
+            alert(`User detials updated !`);
             $('#editProfileModal').modal('hide');
-
+            location.reload();
         } catch (err) {
             console.error("❌ Error:", err.message);
             alert(`Error: ${err.message}`);
         }
     });
+
+
+
+    // document.getElementById('submit').addEventListener('click', async (event) => {
+    //     event.preventDefault();
+
+    //     const userId = localStorage.getItem('uid');
+    //     if (!userId) {
+    //         alert("User ID not found");
+    //         return;
+    //     }
+
+    //     const updatedData = {
+    //         email: document.getElementById('emailModal').value,
+    //         address: document.getElementById('addressModal').value,
+    //         phoneNumber: document.getElementById('phoneModal').value,
+    //         postcode: document.getElementById('postcodeModal').value,
+    //         city: document.getElementById('cityModal').value,
+    //         state: document.getElementById('stateModal').value
+    //     };
+
+    //     try {
+    //         const textResponse = await fetch(`/api/users/${userId}`, {
+    //             method: 'PUT',
+    //             headers: { 'Content-Type': 'application/json' },
+    //             body: JSON.stringify(updatedData)
+    //         });
+
+    //         const textData = await textResponse.json();
+    //         if (!textResponse.ok) throw new Error(textData.message || 'Failed to update user info');
+
+    //         console.log("User info updated:", textData.message || 'Success');
+
+    //         const fileInput = document.getElementById('uploadPic');
+    //         const file = fileInput.files[0];
+
+    //         if (file) {
+    //             const formData = new FormData();
+    //             formData.append('profilePic', file);
+
+    //             const imageResponse = await fetch(`/api/users/${userId}`, {
+    //                 method: 'PUT',
+    //                 body: formData
+    //             });
+
+    //             const imageData = await imageResponse.json();
+    //             if (!imageResponse.ok) throw new Error(imageData.message || 'Image upload failed');
+
+    //             if (imageData.imageUrl) {
+    //                 document.getElementById('profilePic').src = imageData.imageUrl;
+    //             }
+    //         }
+
+    //         await fetchAndDisplayUser(userId);
+
+    //         $('#editProfileModal').modal('hide');
+
+    //     } catch (err) {
+    //         console.error("❌ Error:", err.message);
+    //         alert(`Error: ${err.message}`);
+    //     }
+    // });
 
     document.getElementById('deleteProfilePic').addEventListener('click', async () => {
         const userId = localStorage.getItem('uid');
