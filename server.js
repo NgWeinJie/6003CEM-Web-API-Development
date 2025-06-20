@@ -112,7 +112,6 @@ const RecipeSchema = new mongoose.Schema({
 
 const Recipe = mongoose.model('Recipe', RecipeSchema);
 
-// === NATIVE MONGODB CLIENT (for cart, users, etc.) ===
 const client = new MongoClient(MONGO_URI);
 const dbName = 'webApi';
 const cartCollection = 'cart';

@@ -11,7 +11,6 @@ async function fetchCartItems(userId) {
   cartItemsContainer.innerHTML = '';
 
   try {
-    // Use userId directly (string)
     const res = await fetch(`/api/cart?userId=${encodeURIComponent(userId)}`);
     if (!res.ok) throw new Error('Failed to fetch cart items');
     const cartItems = await res.json();
