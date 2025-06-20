@@ -298,7 +298,7 @@ app.get('/api/recipes/product/:id', async (req, res) => {
     if (existing) return res.status(200).json(existing.recipes);
 
     // Step 1: Search recipes by product title
-    const searchUrl = `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(product.title)}&number=10&apiKey=${SPOONACULAR_API_KEY}`;
+    const searchUrl = `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(product.title)}&number=3&apiKey=${SPOONACULAR_API_KEY}`;
     const searchRes = await axios.get(searchUrl);
 
     const productWords = product.title.toLowerCase().split(/\s+/);
