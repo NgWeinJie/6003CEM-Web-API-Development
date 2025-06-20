@@ -1,3 +1,4 @@
+
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -6,12 +7,43 @@ const cors = require('cors');
 const axios = require('axios');
 const multer = require('multer');
 require('dotenv').config();
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://User:1234@cluster0.oro1vef.mongodb.net/webApi';
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+// === MIDDLEWARE ===
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Ensure the directory exists
+const uploadDir = path.join(__dirname, 'uploads', 'profile-pics');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure multer disk storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uid = req.params.userId || 'default';  // <-- corrected line
+    cb(null, `${uid}${ext}`); // e.g. qfKuk9...jpg
+  }
+});
+
+const upload = multer({ storage }); // use this in your route
+
+const memoryStorage = multer.memoryStorage();
+
+// Create upload instances for different purposes
+const uploadToMemory = multer({ storage: memoryStorage });
 
 // === MONGOOSE (for orders and products) ===
 mongoose.connect(MONGO_URI, {
@@ -97,10 +129,94 @@ async function connectDB() {
   return client.db(dbName);
 }
 
-// === MIDDLEWARE ===
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// === ADMIN CONTACT US ===
+app.get('/api/feedback', async (req, res) => {
+  try {
+    const db = await connectDB();
+    const feedbacks = await db.collection('feedback')
+      .find({})
+      .sort({ timestamp: -1 })
+      .toArray();
+
+    res.status(200).json(feedbacks);
+  } catch (err) {
+    console.error('❌ Error fetching feedback:', err);
+    res.status(500).json({ error: 'Failed to fetch feedback' });
+  }
+});
+
+// === ADMIN CONTACT US (DELETE FEEDBACK BY ID) ===
+app.delete('/api/feedback/:id', async (req, res) => {
+  try {
+    const db = await connectDB();
+    const id = req.params.id;
+
+    const result = await db.collection('feedback').deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 1) {
+      res.status(200).json({ message: 'Feedback deleted successfully' });
+    } else {
+      res.status(404).json({ message: 'Feedback not found' });
+    }
+  } catch (err) {
+    console.error('❌ Error deleting feedback:', err);
+    res.status(500).json({ error: 'Failed to delete feedback' });
+  }
+});
+
+// === ADMIN CONTACT US STATUS === 
+app.patch('/api/feedback/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    const db = await connectDB();
+    const result = await db.collection('feedback').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status } }
+    );
+
+    if (result.modifiedCount === 1) {
+      res.status(200).json({ message: 'Status updated successfully' });
+    } else {
+      res.status(404).json({ message: 'Feedback not found' });
+    }
+  } catch (err) {
+    console.error('❌ Error updating status:', err);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+
+
+// === CONTACT US ===
+app.post('/api/feedback', async (req, res) => {
+  console.log('💬 Feedback route called');
+  const { name, email, message } = req.body;
+
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  try {
+    const db = await connectDB();
+    const feedbackCollection = db.collection('feedback');
+
+    const newFeedback = {
+      name,
+      email,
+      message,
+      timestamp: new Date(),
+      status: 'Not Completed'
+    };
+
+    await feedbackCollection.insertOne(newFeedback);
+    res.status(201).json({ message: 'Feedback submitted successfully' });
+  } catch (err) {
+    console.error('❌ Error saving feedback:', err);
+    res.status(500).json({ error: 'Failed to save feedback' });
+  }
+});
 
 // === STATIC FILES ===
 app.use(express.static(path.join(__dirname, 'html')));
@@ -120,12 +236,12 @@ app.get('/api/products/categories', async (req, res) => {
   try {
     const categories = ["groceries", "beauty", "furniture", "fragrances"];
     const result = {};
-    
+
     for (const category of categories) {
       const products = await Product.find({ category }).lean();
       result[category] = products;
     }
-    
+
     res.status(200).json(result);
   } catch (error) {
     console.error('❌ Error fetching products by categories:', error);
@@ -137,18 +253,18 @@ app.get('/api/products/categories', async (req, res) => {
 app.get('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid product ID format' });
     }
-    
+
     const product = await Product.findById(id).lean();
-    
+
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    
+
     res.status(200).json(product);
   } catch (error) {
     console.error('❌ Error fetching product:', error);
@@ -163,7 +279,7 @@ app.get('/api/products/search/:query', async (req, res) => {
     const products = await Product.find({
       title: { $regex: query, $options: 'i' }
     }).lean();
-    
+
     res.status(200).json({ products });
   } catch (error) {
     console.error('❌ Error searching products:', error);
@@ -215,15 +331,11 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 // === ADD PRODUCTS ===
-// Use memory storage for multer
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
-
 // Serve static files
 app.use(express.static("html"));
 
 // API endpoint to handle form submission
-app.post("/api/products", upload.single("images"), async (req, res) => {
+app.post("/api/products", uploadToMemory.single("images"), async (req, res) => {
   try {
     const { title, description, price, stock, category } = req.body;
 
@@ -405,7 +517,6 @@ app.post('/create-payment-intent', async (req, res) => {
   }
 });
 
-
 // === ORDER APIs ===
 app.post('/api/payment', async (req, res) => {
   try {
@@ -472,32 +583,169 @@ app.get('/api/users/:userId', async (req, res) => {
   }
 });
 
-app.put('/api/users/:uid', async (req, res) => {
-  const uid = req.params.uid;
-  const updatedData = req.body; // Contains fields like email, address, phoneNumber, etc.
+app.use('/uploads', express.static('uploads'));
+
+// app.put('/api/users/:userId', (req, res, next) => {
+//   req.uid = req.params.userId; // make UID available to multer
+//   next();
+// }, upload.single('profilePic'), async (req, res) => {
+//   try {
+//     const db = client.db(dbName);
+//     const users = db.collection('users');
+
+//     const uid = req.params.userId.trim(); // Clean input
+//     console.log('UID:', uid);
+
+//     const user = await users.findOne({ uid: uid });
+//     if (!user) {
+//       console.log('❌ User not found in MongoDB');
+//       return res.status(404).json({ success: false, message: 'User not found' });
+//     }
+
+//     const updateData = {};
+//     if (req.file) {
+//       updateData.profilePic = `/uploads/profile-pics/${req.file.filename}`;
+//     }
+
+//     const result = await users.findOneAndUpdate(
+//       { uid: uid },
+//       { $set: updateData },
+//       { returnDocument: 'after' }
+//     );
+
+//     res.json({ success: true, user: result.value });
+//   } catch (err) {
+//     console.error('Error during update:', err);
+//     res.status(500).json({ success: false, message: 'Update failed' });
+//   }
+// });
+
+app.put('/api/users/:userId', upload.single('profilePic'), async (req, res) => {
+  const userId = req.params.userId.trim();
+
+  const {
+    email,
+    address,
+    phoneNumber,
+    postcode,
+    city,
+    state
+  } = req.body;
 
   try {
     await client.connect();
     const db = client.db(dbName);
     const users = db.collection('users');
 
-    const result = await users.updateOne(
-      { uid: uid }, // Filter by user UID
-      { $set: updatedData } // Update the fields sent in request body
-    );
+    // Optional: Debug check if user exists
+    const checkUser = await users.findOne({ uid: userId });
+    console.log('🔍 Found user:', checkUser);
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ message: 'User not found' });
+    const updateData = {
+      ...(email && { email }),
+      ...(address && { address }),
+      ...(phoneNumber && { phoneNumber }),
+      ...(postcode && { postcode }),
+      ...(city && { city }),
+      ...(state && { state }),
+    };
+
+    if (req.file) {
+      updateData.profilePic = `/uploads/profile-pics/${req.file.filename}`;
     }
 
-    res.status(200).json({ message: 'User updated successfully' });
+    console.log('📝 Update data to save:', updateData);
+
+    const result = await users.findOneAndUpdate(
+      { uid: userId },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+
+    let updatedUser = result.value;
+
+    if (!updatedUser) {
+      console.log('⚠️ No change in data — re-fetching user...');
+      updatedUser = await users.findOne({ uid: userId });
+    }
+
+    if (!updatedUser) {
+      console.log('❌ No user found to update.');
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    console.log('✅ Updated user from DB:', updatedUser);
+
+    res.status(200).json({
+      success: true,
+      message: 'User updated successfully',
+      user: updatedUser
+    });
+
   } catch (error) {
     console.error('❌ Error updating user:', error);
-    res.status(500).json({ message: 'Failed to update user', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to update user', error: error.message });
   } finally {
     await client.close();
   }
 });
+
+app.delete('/api/users/:userId/profile-pic', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const db = await connectDB();
+    const users = db.collection('users');
+
+    const user = await users.findOne({ uid: userId });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Remove file from disk if it's a custom image
+    if (user.profilePic && !user.profilePic.includes('default.png')) {
+      const imagePath = path.join(__dirname, user.profilePic);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
+    // Set profilePic to default
+    await users.updateOne({ uid: userId }, { $set: { profilePic: '/uploads/profile-pics/default.png' } });
+
+    res.json({ success: true, imageUrl: '/uploads/profile-pics/default.png' });
+  } catch (error) {
+    console.error('Error deleting profile image:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete image' });
+  }
+});
+
+// app.put('/api/users/:uid', async (req, res) => {
+//   const uid = req.params.uid;
+//   const updatedData = req.body; // Contains fields like email, address, phoneNumber, etc.
+
+//   try {
+//     await client.connect();
+//     const db = client.db(dbName);
+//     const users = db.collection('users');
+
+//     const result = await users.updateOne(
+//       { uid: uid }, // Filter by user UID
+//       { $set: updatedData } // Update the fields sent in request body
+//     );
+
+//     if (result.matchedCount === 0) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     res.status(200).json({ message: 'User updated successfully' });
+//   } catch (error) {
+//     console.error('❌ Error updating user:', error);
+//     res.status(500).json({ message: 'Failed to update user', error: error.message });
+//   } finally {
+//     await client.close();
+//   }
+// });
 
 // === USER POINTS API ===
 app.patch('/api/users/:userId/points', async (req, res) => {
@@ -700,26 +948,42 @@ app.get('/api/cart/recommendation', async (req, res) => {
       return res.status(404).json({ message: 'No items in cart to base recommendations on.' });
     }
 
-    const keywords = cartItems.map(item => item.productName.split(' ')[0]); // Get first word of each product name
-    const searchQuery = keywords[Math.floor(Math.random() * keywords.length)];
+    const categories = cartItems
+      .map(item => item.productCategory || item.category)
+      .filter(Boolean);
 
-    // Fetch recommendation from DummyJSON
-    const response = await axios.get(`https://dummyjson.com/products/search?q=${searchQuery}`);
-    const results = response.data.products;
+    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
 
-    if (results.length > 0) {
-      const randomRecommendation = results[Math.floor(Math.random() * results.length)];
-      return res.json({ recommendation: randomRecommendation });
-    } else {
-      return res.status(404).json({ message: 'No recommendations found based on your cart items.' });
+    const response = await axios.get(`https://dummyjson.com/products/category/${encodeURIComponent(randomCategory)}`);
+    const dummyProducts = response.data.products;
+
+    if (!dummyProducts || dummyProducts.length === 0) {
+      return res.status(404).json({ message: 'No DummyJSON products found for this category.' });
     }
+
+    const localProducts = await db.collection('products').find({}, { projection: { title: 1 } }).toArray();
+    const localTitles = new Set(localProducts.map(p => p.title.toLowerCase()));
+
+    const cartTitles = new Set(cartItems.map(i => i.productName?.toLowerCase()).filter(Boolean));
+
+    const matchedProducts = dummyProducts.filter(p =>
+      localTitles.has(p.title.toLowerCase()) &&
+      !cartTitles.has(p.title.toLowerCase())
+    );
+
+    if (matchedProducts.length === 0) {
+      return res.status(404).json({ message: 'No matching new products to recommend.' });
+    }
+
+    const randomMatch = matchedProducts[Math.floor(Math.random() * matchedProducts.length)];
+
+    res.json({ recommendation: randomMatch });
+
   } catch (err) {
     console.error('❌ Error in recommendation API:', err);
     res.status(500).json({ message: 'Internal server error while fetching recommendations.' });
   }
 });
-
-
 
 // === START SERVER ===
 app.listen(PORT, () => {

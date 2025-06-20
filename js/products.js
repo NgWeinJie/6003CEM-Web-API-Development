@@ -4,7 +4,6 @@ require('dotenv').config();
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://User:1234@cluster0.oro1vef.mongodb.net/webApi';
 
-// Minimal Product Schema - Only essential business fields
 const productSchema = new mongoose.Schema({
   title: { type: String, required: true, unique: true },
   description: String,
@@ -16,13 +15,24 @@ const productSchema = new mongoose.Schema({
 
 const Product = mongoose.model('Product', productSchema);
 
+// Product titles to exclude from syncing
+const EXCLUDED_TITLES = [
+  "Cat Food",
+  "Dog Food",
+  "Tissue Paper Box",
+];
+
+// Function to check if a product title should be excluded
+function shouldExcludeProduct(title) {
+  return EXCLUDED_TITLES.some(excludedTitle => 
+    title.toLowerCase().includes(excludedTitle.toLowerCase())
+  );
+}
+
 // Connect to MongoDB
 async function connectToDatabase() {
   try {
-    await mongoose.connect(MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(MONGO_URI);
     console.log('✅ Connected to MongoDB');
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
@@ -30,7 +40,7 @@ async function connectToDatabase() {
   }
 }
 
-// Sync products from DummyJSON API
+// Sync products from DummyJSON API with direct filtering
 async function syncProductsFromAPI() {
   try {
     console.log('🔄 Starting product sync from DummyJSON API...');
@@ -39,6 +49,7 @@ async function syncProductsFromAPI() {
     let totalSynced = 0;
     let totalUpdated = 0;
     let totalCreated = 0;
+    let totalExcluded = 0;
     
     for (const category of categories) {
       try {
@@ -48,7 +59,20 @@ async function syncProductsFromAPI() {
         });
         const products = response.data.products;
         
-        for (const product of products) {
+        // Filter out unwanted products before processing
+        const filteredProducts = products.filter(product => {
+          if (shouldExcludeProduct(product.title)) {
+            console.log(`🚫 Skipping excluded product: ${product.title}`);
+            totalExcluded++;
+            return false;
+          }
+          return true; 
+        });
+        
+        console.log(`✨ Filtered ${filteredProducts.length} products (excluded ${products.length - filteredProducts.length}) from category: ${category}`);
+        
+        // Process only the filtered products
+        for (const product of filteredProducts) {
           try {
             const productData = {
               title: product.title,
@@ -77,23 +101,25 @@ async function syncProductsFromAPI() {
           }
         }
         
-        console.log(`✅ Processed ${products.length} products from category: ${category}`);
+        console.log(`✅ Successfully processed ${filteredProducts.length} products from category: ${category}`);
       } catch (categoryError) {
         console.error(`❌ Error fetching category ${category}:`, categoryError.message);
       }
     }
     
-    console.log('\n🎉 Product sync completed!');
+    console.log('\n🎉 Product sync completed');
     console.log(`📊 Summary:`);
-    console.log(`   - Total products processed: ${totalSynced}`);
+    console.log(`   - Products stored in database: ${totalSynced}`);
     console.log(`   - New products created: ${totalCreated}`);
     console.log(`   - Existing products updated: ${totalUpdated}`);
+    console.log(`   - Products filtered out: ${totalExcluded}`);
     
     return { 
       success: true, 
       totalSynced, 
       totalCreated, 
-      totalUpdated 
+      totalUpdated,
+      totalExcluded
     };
   } catch (error) {
     console.error('❌ Error in product sync:', error);
@@ -129,76 +155,12 @@ async function checkDatabaseStatus() {
   }
 }
 
-// Clear all products
-async function clearAllProducts() {
-  try {
-    const result = await Product.deleteMany({});
-    console.log(`🗑️  Cleared ${result.deletedCount} products from database`);
-    return result.deletedCount;
-  } catch (error) {
-    console.error('❌ Error clearing products:', error);
-    return 0;
-  }
-}
-
-// Main function
 async function main() {
-  const args = process.argv.slice(2);
-  const command = args[0] || 'sync';
-
   await connectToDatabase();
-
-  switch (command) {
-    case 'sync':
-      await syncProductsFromAPI();
-      break;
-    
-    case 'status':
-      await checkDatabaseStatus();
-      break;
-    
-    case 'clear':
-      console.log('⚠️  WARNING: This will delete all products from the database!');
-      console.log('Type "yes" to confirm or press Ctrl+C to cancel');
-      
-      const readline = require('readline');
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-      });
-      
-      rl.question('Confirm deletion (yes/no): ', async (answer) => {
-        if (answer.toLowerCase() === 'yes') {
-          await clearAllProducts();
-        } else {
-          console.log('❌ Operation cancelled');
-        }
-        rl.close();
-        mongoose.connection.close();
-      });
-      return;
-    
-    case 'force-sync':
-      console.log('🔄 Force syncing all products (clearing existing data first)...');
-      await clearAllProducts();
-      await syncProductsFromAPI();
-      break;
-    
-    default:
-      console.log('📖 Available commands:');
-      console.log('   - sync: Sync products from DummyJSON API (default)');
-      console.log('   - status: Check current database status');
-      console.log('   - clear: Clear all products from database');
-      console.log('   - force-sync: Clear and re-sync all products');
-      console.log('\nUsage: node products.js [command]');
-  }
-
-  if (command !== 'clear') {
-    await checkDatabaseStatus();
-  }
-
+  await syncProductsFromAPI();
+  await checkDatabaseStatus();
   mongoose.connection.close();
-  console.log('\n👋 Sync script completed');
+  console.log('\n👋 Sync completed');
 }
 
 // Handle errors and cleanup
@@ -214,7 +176,6 @@ process.on('unhandledRejection', (error) => {
   process.exit(1);
 });
 
-// Run the script
 if (require.main === module) {
   main().catch((error) => {
     console.error('❌ Script error:', error);
@@ -225,7 +186,5 @@ if (require.main === module) {
 
 module.exports = {
   syncProductsFromAPI,
-  checkDatabaseStatus,
-  clearAllProducts,
   Product
 };
