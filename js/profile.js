@@ -4,18 +4,14 @@ const fetchAndDisplayUser = async (userId) => {
         if (!response.ok) throw new Error('User not found or fetch failed');
         const userData = await response.json();
 
-        // Display user details in the modal form inputs
         displayUserDetailsInForm(userData);
 
-        // Display user data on the profile page
         displayUserData(userData);
     } catch (error) {
         console.error('Error fetching and displaying user:', error);
     }
 };
 
-
-// Function to display user data on the modal form
 const displayUserDetailsInForm = (userData) => {
     document.getElementById('emailModal').value = userData.email;
     document.getElementById('addressModal').value = userData.address;
@@ -25,7 +21,6 @@ const displayUserDetailsInForm = (userData) => {
     document.getElementById('stateModal').value = userData.state;
 };
 
-// Function to display user data on the profile page
 const displayUserData = (userData) => {
     const userNameElement = document.getElementById('userName');
     const userEmailElement = document.getElementById('userEmail');
@@ -53,42 +48,11 @@ const displayUserData = (userData) => {
         if (userData.profilePic) {
             profilePicElement.src = userData.profilePic;
         } else {
-            profilePicElement.src = 'default.jpg'; // fallback image
+            profilePicElement.src = 'default.jpg'; 
         }
     }
 };
 
-// document.getElementById('upload').addEventListener('click', async (event) => {
-//     const userId = localStorage.getItem('uid');
-//     const fileInput = document.getElementById('uploadPic');
-//     const file = fileInput.files[0];
-//     const uid = localStorage.getItem('uid');
-
-//     if (!file || !uid) {
-//         alert("Missing file or user ID.");
-//         return;
-//     }
-
-//     const formData = new FormData();
-//     formData.append('profilePic', file);
-//     formData.append('uid', userId);
-
-//     const response = await fetch(`/api/users/${userId}`, {
-//         method: 'PUT',
-//         body: formData
-//     });
-
-//     const data = await response.json();
-
-//     if (data.success) {
-//         document.getElementById('profilePic').src = data.imageUrl;
-//         alert("Upload successful!");
-//     } else {
-//         alert("Upload failed.");
-//     }
-//     console.log("Updating user:", userId);
-
-// });
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -96,18 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userId) {
         fetchAndDisplayUser(userId);
     }
-
-    document.getElementById('uploadPic').addEventListener('change', function () {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                document.getElementById('profilePic').src = e.target.result;
-                console.log('Preview image src:', e.target.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    });
 
     document.getElementById('submit').addEventListener('click', async (event) => {
         event.preventDefault();
@@ -143,12 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             console.log("✅ Full response from backend:", result);
 
-            // Update profile pic if returned
             if (result?.user?.profilePic) {
                 document.getElementById('profilePic').src = result.user.profilePic;
             }
 
-            // Optionally refresh profile info
             await fetchAndDisplayUser(userId);
             alert(`User detials updated !`);
             $('#editProfileModal').modal('hide');
@@ -159,67 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
-
-    // document.getElementById('submit').addEventListener('click', async (event) => {
-    //     event.preventDefault();
-
-    //     const userId = localStorage.getItem('uid');
-    //     if (!userId) {
-    //         alert("User ID not found");
-    //         return;
-    //     }
-
-    //     const updatedData = {
-    //         email: document.getElementById('emailModal').value,
-    //         address: document.getElementById('addressModal').value,
-    //         phoneNumber: document.getElementById('phoneModal').value,
-    //         postcode: document.getElementById('postcodeModal').value,
-    //         city: document.getElementById('cityModal').value,
-    //         state: document.getElementById('stateModal').value
-    //     };
-
-    //     try {
-    //         const textResponse = await fetch(`/api/users/${userId}`, {
-    //             method: 'PUT',
-    //             headers: { 'Content-Type': 'application/json' },
-    //             body: JSON.stringify(updatedData)
-    //         });
-
-    //         const textData = await textResponse.json();
-    //         if (!textResponse.ok) throw new Error(textData.message || 'Failed to update user info');
-
-    //         console.log("User info updated:", textData.message || 'Success');
-
-    //         const fileInput = document.getElementById('uploadPic');
-    //         const file = fileInput.files[0];
-
-    //         if (file) {
-    //             const formData = new FormData();
-    //             formData.append('profilePic', file);
-
-    //             const imageResponse = await fetch(`/api/users/${userId}`, {
-    //                 method: 'PUT',
-    //                 body: formData
-    //             });
-
-    //             const imageData = await imageResponse.json();
-    //             if (!imageResponse.ok) throw new Error(imageData.message || 'Image upload failed');
-
-    //             if (imageData.imageUrl) {
-    //                 document.getElementById('profilePic').src = imageData.imageUrl;
-    //             }
-    //         }
-
-    //         await fetchAndDisplayUser(userId);
-
-    //         $('#editProfileModal').modal('hide');
-
-    //     } catch (err) {
-    //         console.error("❌ Error:", err.message);
-    //         alert(`Error: ${err.message}`);
-    //     }
-    // });
 
     document.getElementById('deleteProfilePic').addEventListener('click', async () => {
         const userId = localStorage.getItem('uid');
