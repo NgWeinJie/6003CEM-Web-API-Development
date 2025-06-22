@@ -29,7 +29,7 @@ async function fetchProductDetails(productId) {
 
         // Fetch recipes
         const recipeContainer = document.getElementById('recipeContainer');
-        fetchRecipesByIngredient(product._id, recipeContainer, product.category);
+        fetchRecipes(product._id, recipeContainer, product.category);
         
     } catch (error) {
         console.error('Error fetching product:', error);
@@ -37,7 +37,7 @@ async function fetchProductDetails(productId) {
     }
 }
 
-async function fetchRecipesByIngredient(productId, containerElement, category) {
+async function fetchRecipes(productId, containerElement, category) {
   try {
     const response = await fetch(`/api/recipes/product/${productId}`);
     if (!response.ok) throw new Error('Failed to fetch recipes');
