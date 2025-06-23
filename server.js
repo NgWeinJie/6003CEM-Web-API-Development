@@ -14,6 +14,11 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://User:1234@cluster0.oro
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
+// === MIDDLEWARE ===
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 const uploadDir = path.join(__dirname, 'uploads', 'profile-pics');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -109,7 +114,6 @@ const RecipeSchema = new mongoose.Schema({
 
 const Recipe = mongoose.model('Recipe', RecipeSchema);
 
-// === NATIVE MONGODB CLIENT (for cart, users, etc.) ===
 const client = new MongoClient(MONGO_URI);
 const dbName = 'webApi';
 const cartCollection = 'cart';
@@ -121,10 +125,94 @@ async function connectDB() {
   return client.db(dbName);
 }
 
-// === MIDDLEWARE ===
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// === ADMIN CONTACT US ===
+app.get('/api/feedback', async (req, res) => {
+  try {
+    const db = await connectDB();
+    const feedbacks = await db.collection('feedback')
+      .find({})
+      .sort({ timestamp: -1 })
+      .toArray();
+
+    res.status(200).json(feedbacks);
+  } catch (err) {
+    console.error('❌ Error fetching feedback:', err);
+    res.status(500).json({ error: 'Failed to fetch feedback' });
+  }
+});
+
+// === ADMIN CONTACT US (DELETE FEEDBACK BY ID) ===
+app.delete('/api/feedback/:id', async (req, res) => {
+  try {
+    const db = await connectDB();
+    const id = req.params.id;
+
+    const result = await db.collection('feedback').deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 1) {
+      res.status(200).json({ message: 'Feedback deleted successfully' });
+    } else {
+      res.status(404).json({ message: 'Feedback not found' });
+    }
+  } catch (err) {
+    console.error('❌ Error deleting feedback:', err);
+    res.status(500).json({ error: 'Failed to delete feedback' });
+  }
+});
+
+// === ADMIN CONTACT US STATUS === 
+app.patch('/api/feedback/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    const db = await connectDB();
+    const result = await db.collection('feedback').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status } }
+    );
+
+    if (result.modifiedCount === 1) {
+      res.status(200).json({ message: 'Status updated successfully' });
+    } else {
+      res.status(404).json({ message: 'Feedback not found' });
+    }
+  } catch (err) {
+    console.error('❌ Error updating status:', err);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+
+
+// === CONTACT US ===
+app.post('/api/feedback', async (req, res) => {
+  console.log('💬 Feedback route called');
+  const { name, email, message } = req.body;
+
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  try {
+    const db = await connectDB();
+    const feedbackCollection = db.collection('feedback');
+
+    const newFeedback = {
+      name,
+      email,
+      message,
+      timestamp: new Date(),
+      status: 'Not Completed'
+    };
+
+    await feedbackCollection.insertOne(newFeedback);
+    res.status(201).json({ message: 'Feedback submitted successfully' });
+  } catch (err) {
+    console.error('❌ Error saving feedback:', err);
+    res.status(500).json({ error: 'Failed to save feedback' });
+  }
+});
 
 // === STATIC FILES ===
 app.use(express.static(path.join(__dirname, 'html')));
@@ -784,26 +872,42 @@ app.get('/api/cart/recommendation', async (req, res) => {
       return res.status(404).json({ message: 'No items in cart to base recommendations on.' });
     }
 
-    const keywords = cartItems.map(item => item.productName.split(' ')[0]); // Get first word of each product name
-    const searchQuery = keywords[Math.floor(Math.random() * keywords.length)];
+    const categories = cartItems
+      .map(item => item.productCategory || item.category)
+      .filter(Boolean);
 
-    // Fetch recommendation from DummyJSON
-    const response = await axios.get(`https://dummyjson.com/products/search?q=${searchQuery}`);
-    const results = response.data.products;
+    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
 
-    if (results.length > 0) {
-      const randomRecommendation = results[Math.floor(Math.random() * results.length)];
-      return res.json({ recommendation: randomRecommendation });
-    } else {
-      return res.status(404).json({ message: 'No recommendations found based on your cart items.' });
+    const response = await axios.get(`https://dummyjson.com/products/category/${encodeURIComponent(randomCategory)}`);
+    const dummyProducts = response.data.products;
+
+    if (!dummyProducts || dummyProducts.length === 0) {
+      return res.status(404).json({ message: 'No DummyJSON products found for this category.' });
     }
+
+    const localProducts = await db.collection('products').find({}, { projection: { title: 1 } }).toArray();
+    const localTitles = new Set(localProducts.map(p => p.title.toLowerCase()));
+
+    const cartTitles = new Set(cartItems.map(i => i.productName?.toLowerCase()).filter(Boolean));
+
+    const matchedProducts = dummyProducts.filter(p =>
+      localTitles.has(p.title.toLowerCase()) &&
+      !cartTitles.has(p.title.toLowerCase())
+    );
+
+    if (matchedProducts.length === 0) {
+      return res.status(404).json({ message: 'No matching new products to recommend.' });
+    }
+
+    const randomMatch = matchedProducts[Math.floor(Math.random() * matchedProducts.length)];
+
+    res.json({ recommendation: randomMatch });
+
   } catch (err) {
     console.error('❌ Error in recommendation API:', err);
     res.status(500).json({ message: 'Internal server error while fetching recommendations.' });
   }
 });
-
-
 
 // === START SERVER ===
 app.listen(PORT, () => {
