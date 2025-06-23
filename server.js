@@ -1,4 +1,3 @@
-
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -20,25 +19,23 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Ensure the directory exists
 const uploadDir = path.join(__dirname, 'uploads', 'profile-pics');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Configure multer disk storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    const uid = req.params.userId || 'default';  // <-- corrected line
-    cb(null, `${uid}${ext}`); // e.g. qfKuk9...jpg
+    const uid = req.params.userId || 'default';  
+    cb(null, `${uid}${ext}`); 
   }
 });
 
-const upload = multer({ storage }); // use this in your route
+const upload = multer({ storage }); 
 
 const memoryStorage = multer.memoryStorage();
 
@@ -89,7 +86,7 @@ const Product = mongoose.model('Product', productSchema);
 
 // User Schema
 const userSchema = new mongoose.Schema({
-  firebaseUid: { type: String, unique: true, required: true },  // your UID from Firebase
+  firebaseUid: { type: String, unique: true, required: true },  
   email: { type: String, required: true },
   firstName: String,
   lastName: String,
@@ -465,23 +462,19 @@ app.get('/api/recipes/product/:id', async (req, res) => {
   }
 });
 
-// server.js or routes/payment.js
 app.post('/create-payment-intent', async (req, res) => {
   try {
     const { amount, currency, paymentMethodId, customerId } = req.body;
 
-    // Convert amount to smallest currency unit (e.g., cents)
     const amountInSen = Math.round(amount * 100);
 
     let customer = customerId;
 
-    // Create a new customer if no ID provided
     if (!customer) {
       const newCustomer = await stripe.customers.create();
       customer = newCustomer.id;
     }
 
-    // Attach payment method if not already attached
     try {
       await stripe.paymentMethods.attach(paymentMethodId, { customer });
     } catch (err) {
@@ -490,12 +483,10 @@ app.post('/create-payment-intent', async (req, res) => {
       }
     }
 
-    // Update customer's default payment method
     await stripe.customers.update(customer, {
       invoice_settings: { default_payment_method: paymentMethodId },
     });
 
-    // Create PaymentIntent but DO NOT confirm here (confirm: false)
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInSen,
       currency,
@@ -584,41 +575,6 @@ app.get('/api/users/:userId', async (req, res) => {
 
 app.use('/uploads', express.static('uploads'));
 
-// app.put('/api/users/:userId', (req, res, next) => {
-//   req.uid = req.params.userId; // make UID available to multer
-//   next();
-// }, upload.single('profilePic'), async (req, res) => {
-//   try {
-//     const db = client.db(dbName);
-//     const users = db.collection('users');
-
-//     const uid = req.params.userId.trim(); // Clean input
-//     console.log('UID:', uid);
-
-//     const user = await users.findOne({ uid: uid });
-//     if (!user) {
-//       console.log('❌ User not found in MongoDB');
-//       return res.status(404).json({ success: false, message: 'User not found' });
-//     }
-
-//     const updateData = {};
-//     if (req.file) {
-//       updateData.profilePic = `/uploads/profile-pics/${req.file.filename}`;
-//     }
-
-//     const result = await users.findOneAndUpdate(
-//       { uid: uid },
-//       { $set: updateData },
-//       { returnDocument: 'after' }
-//     );
-
-//     res.json({ success: true, user: result.value });
-//   } catch (err) {
-//     console.error('Error during update:', err);
-//     res.status(500).json({ success: false, message: 'Update failed' });
-//   }
-// });
-
 app.put('/api/users/:userId', upload.single('profilePic'), async (req, res) => {
   const userId = req.params.userId.trim();
 
@@ -636,7 +592,6 @@ app.put('/api/users/:userId', upload.single('profilePic'), async (req, res) => {
     const db = client.db(dbName);
     const users = db.collection('users');
 
-    // Optional: Debug check if user exists
     const checkUser = await users.findOne({ uid: userId });
     console.log('🔍 Found user:', checkUser);
 
@@ -701,15 +656,13 @@ app.delete('/api/users/:userId/profile-pic', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Remove file from disk if it's a custom image
     if (user.profilePic && !user.profilePic.includes('default.png')) {
       const imagePath = path.join(__dirname, user.profilePic);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
       }
     }
-
-    // Set profilePic to default
+m
     await users.updateOne({ uid: userId }, { $set: { profilePic: '/uploads/profile-pics/default.png' } });
 
     res.json({ success: true, imageUrl: '/uploads/profile-pics/default.png' });
@@ -719,32 +672,6 @@ app.delete('/api/users/:userId/profile-pic', async (req, res) => {
   }
 });
 
-// app.put('/api/users/:uid', async (req, res) => {
-//   const uid = req.params.uid;
-//   const updatedData = req.body; // Contains fields like email, address, phoneNumber, etc.
-
-//   try {
-//     await client.connect();
-//     const db = client.db(dbName);
-//     const users = db.collection('users');
-
-//     const result = await users.updateOne(
-//       { uid: uid }, // Filter by user UID
-//       { $set: updatedData } // Update the fields sent in request body
-//     );
-
-//     if (result.matchedCount === 0) {
-//       return res.status(404).json({ message: 'User not found' });
-//     }
-
-//     res.status(200).json({ message: 'User updated successfully' });
-//   } catch (error) {
-//     console.error('❌ Error updating user:', error);
-//     res.status(500).json({ message: 'Failed to update user', error: error.message });
-//   } finally {
-//     await client.close();
-//   }
-// });
 
 // === USER POINTS API ===
 app.patch('/api/users/:userId/points', async (req, res) => {
@@ -763,11 +690,9 @@ app.patch('/api/users/:userId/points', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Calculate the new points balance
     const currentPoints = user.points || 0;
     const newPoints = currentPoints + (pointsEarned || 0) - (pointsRedeemed || 0);
 
-    // Update the user's points
     const result = await db.collection('users').updateOne(
       { uid: userId },
       { $set: { points: newPoints } }

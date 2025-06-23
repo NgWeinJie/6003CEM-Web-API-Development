@@ -24,7 +24,6 @@ window.onload = function () {
   document.querySelector(".tablinks").click();
 };
 
-// Utility to get URL parameters
 function getUrlParameter(name) {
   name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
   const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
@@ -32,7 +31,6 @@ function getUrlParameter(name) {
   return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
 
-// Display promo discount if available
 const promoDiscountElement = document.getElementById('promoDiscount');
 const discount = parseFloat(getUrlParameter('discount'));
 const promoCode = getUrlParameter('promoCode');
@@ -40,7 +38,6 @@ if (discount > 0) {
   promoDiscountElement.textContent = `Promo Discount: RM ${discount.toFixed(2)}`;
 }
 
-// Use 'uid' from localStorage as user ID
 const currentUser = { id: localStorage.getItem('uid') };
 
 if (!currentUser.id) {
@@ -48,7 +45,6 @@ if (!currentUser.id) {
   window.location.href = 'login.html';
 }
 
-// Fetch user details from backend
 async function fetchUserDetails(userId) {
   try {
     const res = await fetch(`/api/users/${userId}`);
@@ -62,7 +58,6 @@ async function fetchUserDetails(userId) {
   }
 }
 
-// Show user details in form
 function displayUserDetails(user) {
   document.getElementById('userName').value = `${user.firstName} ${user.lastName}`;
   document.getElementById('userPhone').value = user.phoneNumber || '';
@@ -72,7 +67,6 @@ function displayUserDetails(user) {
   document.getElementById('userState').value = user.state || '';
 }
 
-// Show user coins and enable/disable redeem switch
 function displayUserCoins(points) {
   const userCoinsElem = document.getElementById('userCoins');
   const redeemCoinsSwitch = document.getElementById('redeemCoinsSwitch');
@@ -86,20 +80,18 @@ function displayUserCoins(points) {
   }
 }
 
-// Global cartItems array to retain image info
 let cartItemsWithImage = [];
 
-// Fetch cart items from backend and display
 async function fetchCartItems(userId) {
   try {
     const res = await fetch(`/api/cart?userId=${userId}`);
     if (!res.ok) throw new Error('Failed to fetch cart items');
 
     const cartItems = await res.json();
-    cartItemsWithImage = cartItems; // save full cart for order processing (assuming global)
+    cartItemsWithImage = cartItems;
 
     const container = document.getElementById('paymentItems');
-    container.innerHTML = '';  // clear container
+    container.innerHTML = ''; 
 
     if (cartItems.length === 0) {
       container.textContent = 'Your cart is empty.';
@@ -113,7 +105,7 @@ async function fetchCartItems(userId) {
 
     cartItems.forEach(item => {
       const div = document.createElement('div');
-      div.classList.add('payment-item'); // consistent class
+      div.classList.add('payment-item');
       div.innerHTML = `
         <img class="product-image" src="${item.productImage}" alt="${item.productName}" style="max-width: 100px; max-height: 100px;">
         <p class="product-name">Product Name: ${item.productName}</p>
@@ -125,7 +117,6 @@ async function fetchCartItems(userId) {
       totalAmount += item.productPrice * item.productQuantity;
     });
 
-    // Use discount if defined, else default to 0
     const discountElem = document.getElementById('discount');
     const discountAmount = discountElem ? parseFloat(discountElem.textContent) || 0 : 0;
     if (discountAmount > 0) totalAmount -= discountAmount;
@@ -220,21 +211,16 @@ document.getElementById("payment").addEventListener("click", function (e) {
   SendMailOtp();
 });
 
-
 async function SendMailOtp() {
   try {
-    // Step 1: Validate card details before continuing
     const isCardValid = await validateCardDetails();
     if (!isCardValid) return;
 
-    // Step 2: Handle resend attempts session tracking
     if (!localStorage.getItem('resendAttempts')) {
       localStorage.setItem('resendAttempts', '1');
     }
 
     const userId = getCurrentUserId();
-
-    // Step 4: Fetch user from your MongoDB backend
     const response = await fetch(`/api/users/${userId}`);
     if (!response.ok) {
       alert("User not found.");
@@ -248,8 +234,9 @@ async function SendMailOtp() {
       return;
     }
 
-    // // Step 5: Generate OTP and save it in session
     const otp = generateOTP();
+    const currentTime = Date.now();
+    const expiry = currentTime + 5 * 1000;
 
     const userName = document.getElementById('userName')?.value || '';
     const phone = document.getElementById('userPhone')?.value || '';
@@ -265,7 +252,6 @@ async function SendMailOtp() {
     const discount = document.getElementById('discount');
     const promoCode = document.getElementById('promoCode')?.value || '';
 
-    // Collect cart items from the displayed list (.payment-item)
     const cartElements = document.querySelectorAll('.payment-item');
     const cartItemsWithImage = [];
 
@@ -295,8 +281,8 @@ async function SendMailOtp() {
 
     console.log('Collected cart items:', cartItemsWithImage);
 
-    // Save everything to localStorage
     localStorage.setItem("generatedOTP", otp);
+    localStorage.setItem("otpExpiry", expiry.toString());
     localStorage.setItem("uid", userId);
     localStorage.setItem("userName", userName);
     localStorage.setItem("userEmail", userEmail);
@@ -313,19 +299,17 @@ async function SendMailOtp() {
     localStorage.setItem("redeemCoinsSwitch", redeemSwitch?.checked ? "true" : "false");
     localStorage.setItem("cartItemsWithImage", JSON.stringify(cartItemsWithImage));
 
-    // Prepare email template parameters
     const templateParams = {
       from_name: userName,
       to_email: userEmail,
       otp: otp,
+      expiration_time:new Date(expiry).toLocaleString()
     };
 
-    // Send the OTP via EmailJS
     const result = await emailjs.send('service_7e6jx2j', 'template_l3gma7d', templateParams);
     alert("OTP has been sent to your email.");
     console.log("Email sent:", result);
 
-    // Redirect to OTP page
     window.location.href = "otp.html";
 
   } catch (error) {
@@ -333,6 +317,7 @@ async function SendMailOtp() {
     alert("Something went wrong. Please try again.");
   }
 }
+
 
 function getCurrentUserId() {
   const userId = localStorage.getItem('uid');
@@ -345,7 +330,6 @@ function getCurrentUserId() {
   return userId;
 }
 
-// Update total amount when redeem coins switch toggled
 function updateTotalAmount() {
   const totalElem = document.getElementById('totalAmount');
   const redeemSwitch = document.getElementById('redeemCoinsSwitch');
@@ -370,134 +354,8 @@ function updateTotalAmount() {
   document.getElementById('coinsDiscount').textContent = redeemSwitch.checked ? `Coins Discount: RM ${coinsDiscount.toFixed(2)}` : '';
 }
 
-// // Generate random tracking number
-// function generateTrackingNumber() {
-//   const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-//   let trackingNumber = '';
-//   for (let i = 0; i < 10; i++) {
-//     trackingNumber += charset.charAt(Math.floor(Math.random() * charset.length));
-//   }
-//   return trackingNumber;
-// }
-
-// // Delete all cart items for the current user
-// async function deleteCartItems(userId) {
-//   try {
-//     const res = await fetch(`/api/cart/clear?userId=${userId}`, {
-//       method: 'DELETE'
-//     });
-
-//     if (!res.ok) throw new Error('Failed to clear cart');
-
-//     console.log('Cart items deleted successfully');
-//     return true;
-//   } catch (err) {
-//     console.error('Error deleting cart items:', err);
-//     return false;
-//   }
-// }
-
-// // Update user's points - add earned points and deduct redeemed points
-// async function updateUserPoints(userId, pointsEarned, pointsRedeemed) {
-//   try {
-//     const res = await fetch(`/api/users/${userId}/points`, {
-//       method: 'PATCH',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify({
-//         pointsEarned,
-//         pointsRedeemed
-//       })
-//     });
-
-//     if (!res.ok) throw new Error('Failed to update user points');
-
-//     console.log('User points updated successfully');
-//     return true;
-//   } catch (err) {
-//     console.error('Error updating user points:', err);
-//     return false;
-//   }
-// }
-
-// // Save order to backend
-// async function saveOrder() {
-//   const userName = document.getElementById('userName').value;
-//   const userPhone = document.getElementById('userPhone').value;
-//   const userAddress = document.getElementById('userAddress').value;
-//   const userPostcode = document.getElementById('userPostcode').value;
-//   const userCity = document.getElementById('userCity').value;
-//   const userState = document.getElementById('userState').value;
-//   const userRemark = document.getElementById('userRemark').value;
-
-//   const totalAmountText = document.getElementById('totalAmount').textContent;
-//   const totalAmount = parseFloat(totalAmountText.split('RM')[1].trim());
-//   if (isNaN(totalAmount)) {
-//     alert('Invalid total amount.');
-//     return;
-//   }
-
-//   const redeemSwitch = document.getElementById('redeemCoinsSwitch');
-//   const userCoins = parseInt(document.getElementById('userCoins').textContent);
-//   const coinsDiscount = redeemSwitch.checked ? userCoins * 0.01 : 0;
-//   const pointsRedeemed = redeemSwitch.checked ? userCoins : 0;
-
-//   const pointsEarned = Math.floor(totalAmount);
-//   const trackingNumber = generateTrackingNumber();
-
-//   const cartItems = cartItemsWithImage.map(item => ({
-//     productName: item.productName,
-//     productPrice: item.productPrice,
-//     productQuantity: item.productQuantity,
-//     productImage: Array.isArray(item.productImage) ? item.productImage[0] : item.productImage
-//   }));
-
-//   const order = {
-//     userId: currentUser.id,
-//     userName,
-//     userPhone,
-//     userAddress,
-//     userPostcode,
-//     userCity,
-//     userState,
-//     userRemark,
-//     cartItems,
-//     totalAmount,
-//     shippingFee: 10.00,
-//     status: "Order Received",
-//     trackingNumber,
-//     promoCode: promoCode || '',
-//     discount: discount || 0,
-//     coinsDiscount,
-//     pointsEarned,
-//     pointsRedeemed
-//   };
-
-//   try {
-//     const res = await fetch('/api/payment', {
-//       method: 'POST',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify(order),
-//     });
-
-//     if (!res.ok) throw new Error('Failed to place order');
-//     const data = await res.json();
-
-//     await updateUserPoints(currentUser.id, pointsEarned, pointsRedeemed);
-//     await deleteCartItems(currentUser.id);
-
-//     alert(`Payment successful! Tracking number: ${data.trackingNumber}. Points earned: ${data.pointsEarned}`);
-//     window.location.href = 'home.html';
-//   } catch (err) {
-//     console.error(err);
-//     alert('Failed to place order. Please try again.');
-//   }
-// }
-
-// Event listeners
 document.getElementById('redeemCoinsSwitch').addEventListener('change', updateTotalAmount);
-// document.getElementById('doneBtn').addEventListener('click', saveOrder);
 document.getElementById('backToCartBtn').addEventListener('click', () => window.location.href = 'cart.html');
 
-// Initial fetch of user data and cart
 fetchUserDetails(currentUser.id);
 fetchCartItems(currentUser.id);

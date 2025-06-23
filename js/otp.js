@@ -1,9 +1,6 @@
 const stripe = Stripe('pk_test_51RSxGMPBTfKCtpdh8bdgV3pCyK9MHBSRaR1lJtBAjrMTKn7km5YlyGOUfCzMUtGdqBPq8mr5d4lpuVSKO7zNIRd500LbK3sash');
 const elements = stripe.elements();
 
-
-
-
 document.addEventListener("DOMContentLoaded", () => {
 
     (function () {
@@ -42,18 +39,14 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             await verifyOTP();
 
-            // Get the userId however you store it (localStorage, context, etc.)
-            const userId = localStorage.getItem('uid');  // example
+            const userId = localStorage.getItem('uid');  
 
-            // Build order object
             const order = await saveOrder(userId);
 
-            // Get payment method ID string from session storage
             const paymentDetails = JSON.parse(localStorage.getItem('paymentDetails'));
             if (!paymentDetails || !paymentDetails.paymentMethodId) throw new Error('Payment method missing');
             const paymentMethodId = paymentDetails.paymentMethodId;
 
-            // Create payment intent on server
             const response = await fetch('/create-payment-intent', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -96,11 +89,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 try {
-                    await deleteCartItems(userId);  // clear cart
-                    await updateUserPoints(userId, order.pointsEarned, order.pointsRedeemed);  // update points
+                    await deleteCartItems(userId);  
+                    await updateUserPoints(userId, order.pointsEarned, order.pointsRedeemed); 
                 } catch (err) {
                     console.error('Post-payment update failed:', err);
-                    // You can choose to alert user or silently fail here
                 }
 
                 alert('✅ Payment succeeded and order placed!');
