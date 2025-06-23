@@ -48,7 +48,7 @@ const displayUserData = (userData) => {
         if (userData.profilePic) {
             profilePicElement.src = userData.profilePic;
         } else {
-            profilePicElement.src = 'default.jpg'; 
+            profilePicElement.src = '/uploads/profile-pics/default.png'; 
         }
     }
 };
