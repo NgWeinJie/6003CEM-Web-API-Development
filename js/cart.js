@@ -200,12 +200,13 @@ function renumberProducts() {
   });
 }
 
+// RECOMMENDATION 
 async function fetchRecommendation(userId) {
   try {
     const res = await fetch(`/api/cart/recommendation?userId=${userId}`);
     const data = await res.json();
     const recommendationContainer = document.getElementById('recommendation');
-    recommendationContainer.innerHTML = ''; // Clear previous recommendation
+    recommendationContainer.innerHTML = ''; 
 
     if (data.recommendation) {
       const rec = data.recommendation;
@@ -218,9 +219,8 @@ async function fetchRecommendation(userId) {
       img.alt = rec.title;
       img.classList.add('card-img-top');
       img.onerror = () => {
-        img.src = '/images/default-product.png'; // Optional: fallback if image fails to load
+        img.src = '/images/default-product.png';
       };
-
 
       const cardBody = document.createElement('div');
       cardBody.classList.add('card-body');
@@ -237,24 +237,64 @@ async function fetchRecommendation(userId) {
       desc.classList.add('card-text');
       desc.textContent = rec.description;
 
-      const btn = document.createElement('a');
-      btn.classList.add('btn', 'btn-primary');
-      btn.textContent = 'View Product';
-      btn.href = '/product_details.html#' + rec.id;
+      const addBtn = document.createElement('button');
+      addBtn.classList.add('btn', 'btn-success');
+      addBtn.textContent = 'Add to Cart';
+
+      addBtn.addEventListener('click', async () => {
+        try {
+          const searchRes = await fetch(`/api/products/search/${encodeURIComponent(rec.title)}`);
+          const searchData = await searchRes.json();
+          const matched = searchData.products?.find(p => p.title.toLowerCase() === rec.title.toLowerCase());
+
+          if (!matched) {
+            alert('Product not found in store.');
+            return;
+          }
+
+          const cartItem = {
+            userId,
+            productId: matched._id,
+            productName: matched.title,
+            productPrice: matched.price,
+            productImage: matched.images?.[0] || '',
+            productStock: matched.stock,
+            productQuantity: 1,
+            productCategory: matched.category
+          };
+
+          const cartRes = await fetch('/api/cart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cartItem)
+          });
+
+          const result = await cartRes.json();
+          if (cartRes.ok) {
+            alert(`${matched.title} added to cart!`);
+            fetchCartItems(userId); 
+            fetchRecommendation(userId); 
+          } else {
+            alert(`❌ Failed: ${result.message}`);
+          }
+        } catch (err) {
+          console.error('Error adding to cart:', err);
+          alert('Something went wrong.');
+        }
+      });
 
       cardBody.appendChild(title);
       cardBody.appendChild(price);
       cardBody.appendChild(desc);
-      cardBody.appendChild(btn);
-
+      cardBody.appendChild(addBtn);
       card.appendChild(img);
       card.appendChild(cardBody);
 
       const col = document.createElement('div');
       col.classList.add('col-md-6', 'col-lg-4');
       col.appendChild(card);
-
       recommendationContainer.appendChild(col);
+
     } else {
       recommendationContainer.innerHTML = `<p class="text-muted">No recommendations available at the moment.</p>`;
     }
@@ -263,6 +303,7 @@ async function fetchRecommendation(userId) {
     document.getElementById('recommendation').innerHTML = `<p class="text-danger">Could not load recommendation. Please try again later.</p>`;
   }
 }
+
 
 
 // On DOM load, get user ID from localStorage and fetch cart
