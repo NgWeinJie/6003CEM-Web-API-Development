@@ -1,62 +1,42 @@
-// Assuming you already have Firebase initialized and user authenticated
-const firebaseConfig = {
-    apiKey: "AIzaSyDCdP64LQYeS4vu3lFH7XtUHOPVJOYCbO8",
-    authDomain: "enterprise-project-3448b.firebaseapp.com",
-    databaseURL: "https://enterprise-project-3448b-default-rtdb.firebaseio.com",
-    projectId: "enterprise-project-3448b",
-    storageBucket: "enterprise-project-3448b.appspot.com",
-    messagingSenderId: "1042464271522",
-    appId: "1:1042464271522:web:1d1a3ffadf6830b5767bfb",
-    measurementId: "G-3S19G51X7T"
-};
+document.getElementById('contactForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
 
-// Initialize Firebase app
-firebase.initializeApp(firebaseConfig);
+  const name = document.getElementById('userName').value.trim();
+  const email = document.getElementById('userEmail').value.trim();
+  const message = document.getElementById('userMessage').value.trim();
 
-// Get a reference to Firestore database
-const db = firebase.firestore();
+  if (!name || !email || !message) {
+    alert('Please fill out all fields.');
+    return;
+  }
 
-// Add an event listener for the contact form submission
-document.getElementById('contactForm').addEventListener('submit', function(event) {
-    event.preventDefault();  // Prevent the default form submission
+  try {
+    const response = await fetch(`${window.location.origin}/api/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name, email, message })
+    });
 
-    // Get user input values from the form
-    const userName = document.getElementById('userName').value;
-    const userEmail = document.getElementById('userEmail').value;
-    const userMessage = document.getElementById('userMessage').value;
+    const text = await response.text(); 
+    console.log('Server response:', text);
 
-    // Check if a user is logged in
-    const user = firebase.auth().currentUser;
-    if (user) {
-        // Save the data to the Firestore collection "messages"
-        db.collection('messages').add({
-            uid: user.uid,  // Save the user's UID
-            name: userName,
-            email: userEmail,
-            message: userMessage,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()  // Add a timestamp
-        }).then(() => {
-            alert('Message sent successfully!');
-            // Optionally, clear the form
-            document.getElementById('contactForm').reset();
-        }).catch(error => {
-            console.error('Error writing document: ', error);
-            alert('Error sending message. Please try again.');
-        });
-    } else {
-        alert('Please log in to send a message.');
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (err) {
+      throw new Error('Response is not valid JSON');
     }
-});
 
-// Listen for changes in user authentication state
-firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-        fetchCartItems(user);
-        fetchUserDetails(user.uid);  // Fetch and display user details
+    if (response.ok) {
+      alert('Your message has been sent. Thank you!');
+      document.getElementById('contactForm').reset();
     } else {
-        alert('Please log in to proceed with payment.');
+      alert(result.error || 'Something went wrong. Please try again.');
     }
+  } catch (err) {
+    console.error('Error submitting feedback:', err);
+    alert('Failed to submit message. Please try again.');
+  }
 });
-
-
-

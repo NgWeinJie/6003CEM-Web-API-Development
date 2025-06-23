@@ -30,3 +30,7 @@ h2 {
     margin-bottom: 0;
 }
 
+.status-select {
+    min-width: 140px !important; 
+}
+

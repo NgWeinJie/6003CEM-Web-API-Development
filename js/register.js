@@ -1,7 +1,6 @@
 
 const ApiKey = "AIzaSyBHl8xfPt6Mql2_9nDrJV7A-QsVyGOiZew";
 
-// Function to register user with Firebase Auth using REST
 async function registerUserWithApi(email, password) {
   const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${ApiKey}`, {
     method: 'POST',
@@ -18,7 +17,7 @@ async function registerUserWithApi(email, password) {
     throw new Error(error.error.message || 'Failed to register user');
   }
 
-  return response.json(); // Returns idToken, localId, etc.
+  return response.json(); // Returns idToken, localId.
 }
 
 // Function to send email verification
@@ -69,13 +68,13 @@ async function registerUser() {
   const state = document.getElementById('user_state').value;
 
   try {
-    // Step 1: Register user with Firebase
+    // Register user with Firebase
     const authResponse = await registerUserWithApi(email, password);
 
-    // Step 2: Send email verification
+    // Send email verification
     await sendVerificationEmail(authResponse.idToken);
 
-    // Step 3: Save profile data to your backend
+    // Save profile data to backend
     const userData = {
       uid: authResponse.localId,
       email,
@@ -90,7 +89,6 @@ async function registerUser() {
 
     await saveUserDataToServer(userData);
 
-    // Step 4: Finalize
     alert('Registration successful! Please verify your email.');
     localStorage.setItem('registeredEmail', email);
     localStorage.setItem('userType', 'user');

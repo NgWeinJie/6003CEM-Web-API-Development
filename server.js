@@ -4,13 +4,43 @@ const mongoose = require('mongoose');
 const { MongoClient, ObjectId } = require('mongodb');
 const cors = require('cors');
 const axios = require('axios');
+const multer = require('multer');
 require('dotenv').config();
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://User:1234@cluster0.oro1vef.mongodb.net/webApi';
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+// === MIDDLEWARE ===
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+const uploadDir = path.join(__dirname, 'uploads', 'profile-pics');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uid = req.params.userId || 'default';  
+    cb(null, `${uid}${ext}`); 
+  }
+});
+
+const upload = multer({ storage }); 
+
+const memoryStorage = multer.memoryStorage();
+
+// Create upload instances for different purposes
+const uploadToMemory = multer({ storage: memoryStorage });
 
 // === MONGOOSE (for orders and products) ===
 mongoose.connect(MONGO_URI, {
@@ -20,7 +50,7 @@ mongoose.connect(MONGO_URI, {
   .then(() => console.log('✅ Connected to MongoDB (Mongoose)'))
   .catch(err => console.error('❌ Mongoose connection error:', err));
 
-// Order Schema (Mongoose)
+// Order Schema
 const orderSchema = new mongoose.Schema({
   userId: String,
   userName: String,
@@ -43,7 +73,7 @@ const orderSchema = new mongoose.Schema({
 });
 const Order = mongoose.model('Order', orderSchema);
 
-// Product Schema (Mongoose) - Added for MongoDB product queries
+// Product Schema
 const productSchema = new mongoose.Schema({
   title: { type: String, required: true, unique: true },
   description: String,
@@ -54,8 +84,9 @@ const productSchema = new mongoose.Schema({
 });
 const Product = mongoose.model('Product', productSchema);
 
+// User Schema
 const userSchema = new mongoose.Schema({
-  firebaseUid: { type: String, unique: true, required: true },  // your UID from Firebase
+  firebaseUid: { type: String, unique: true, required: true },  
   email: { type: String, required: true },
   firstName: String,
   lastName: String,
@@ -69,8 +100,20 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
+// Recipe Schema
+const RecipeSchema = new mongoose.Schema({
+  productId: mongoose.Schema.Types.ObjectId,
+  title: String,
+  recipes: [{
+    id: Number,
+    title: String,
+    image: String,
+    sourceUrl: String
+  }]
+});
 
-// === NATIVE MONGODB CLIENT (for cart, users, etc.) ===
+const Recipe = mongoose.model('Recipe', RecipeSchema);
+
 const client = new MongoClient(MONGO_URI);
 const dbName = 'webApi';
 const cartCollection = 'cart';
@@ -82,9 +125,94 @@ async function connectDB() {
   return client.db(dbName);
 }
 
-// === MIDDLEWARE ===
-app.use(cors());
-app.use(express.json());
+// === ADMIN CONTACT US ===
+app.get('/api/feedback', async (req, res) => {
+  try {
+    const db = await connectDB();
+    const feedbacks = await db.collection('feedback')
+      .find({})
+      .sort({ timestamp: -1 })
+      .toArray();
+
+    res.status(200).json(feedbacks);
+  } catch (err) {
+    console.error('❌ Error fetching feedback:', err);
+    res.status(500).json({ error: 'Failed to fetch feedback' });
+  }
+});
+
+// === ADMIN CONTACT US (DELETE FEEDBACK BY ID) ===
+app.delete('/api/feedback/:id', async (req, res) => {
+  try {
+    const db = await connectDB();
+    const id = req.params.id;
+
+    const result = await db.collection('feedback').deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 1) {
+      res.status(200).json({ message: 'Feedback deleted successfully' });
+    } else {
+      res.status(404).json({ message: 'Feedback not found' });
+    }
+  } catch (err) {
+    console.error('❌ Error deleting feedback:', err);
+    res.status(500).json({ error: 'Failed to delete feedback' });
+  }
+});
+
+// === ADMIN CONTACT US STATUS === 
+app.patch('/api/feedback/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    const db = await connectDB();
+    const result = await db.collection('feedback').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status } }
+    );
+
+    if (result.modifiedCount === 1) {
+      res.status(200).json({ message: 'Status updated successfully' });
+    } else {
+      res.status(404).json({ message: 'Feedback not found' });
+    }
+  } catch (err) {
+    console.error('❌ Error updating status:', err);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+
+
+// === CONTACT US ===
+app.post('/api/feedback', async (req, res) => {
+  console.log('💬 Feedback route called');
+  const { name, email, message } = req.body;
+
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  try {
+    const db = await connectDB();
+    const feedbackCollection = db.collection('feedback');
+
+    const newFeedback = {
+      name,
+      email,
+      message,
+      timestamp: new Date(),
+      status: 'Not Completed'
+    };
+
+    await feedbackCollection.insertOne(newFeedback);
+    res.status(201).json({ message: 'Feedback submitted successfully' });
+  } catch (err) {
+    console.error('❌ Error saving feedback:', err);
+    res.status(500).json({ error: 'Failed to save feedback' });
+  }
+});
 
 // === STATIC FILES ===
 app.use(express.static(path.join(__dirname, 'html')));
@@ -104,12 +232,12 @@ app.get('/api/products/categories', async (req, res) => {
   try {
     const categories = ["groceries", "beauty", "furniture", "fragrances"];
     const result = {};
-    
+
     for (const category of categories) {
       const products = await Product.find({ category }).lean();
       result[category] = products;
     }
-    
+
     res.status(200).json(result);
   } catch (error) {
     console.error('❌ Error fetching products by categories:', error);
@@ -121,18 +249,18 @@ app.get('/api/products/categories', async (req, res) => {
 app.get('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid product ID format' });
     }
-    
+
     const product = await Product.findById(id).lean();
-    
+
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    
+
     res.status(200).json(product);
   } catch (error) {
     console.error('❌ Error fetching product:', error);
@@ -147,7 +275,7 @@ app.get('/api/products/search/:query', async (req, res) => {
     const products = await Product.find({
       title: { $regex: query, $options: 'i' }
     }).lean();
-    
+
     res.status(200).json({ products });
   } catch (error) {
     console.error('❌ Error searching products:', error);
@@ -155,23 +283,198 @@ app.get('/api/products/search/:query', async (req, res) => {
   }
 });
 
-// server.js or routes/payment.js
+// === MANAGE PRODUCTS ===
+// Get all products
+app.get('/api/products', async (req, res) => {
+  try {
+    const products = await Product.find();
+    res.json(products);
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
+// Update a product
+app.put('/api/products/:id', async (req, res) => {
+  const { id } = req.params;
+  const { title, description, price, stock, category } = req.body;
+
+  try {
+    const product = await Product.findByIdAndUpdate(
+      id,
+      { title, description, price, stock, category },
+      { new: true }
+    );
+    if (!product) return res.status(404).json({ error: 'Product not found' });
+    res.json(product);
+  } catch (err) {
+    console.error('Error updating product:', err);
+    res.status(500).json({ error: 'Failed to update product' });
+  }
+});
+
+// Delete a product
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    const deleted = await Product.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Product not found' });
+    res.json({ message: 'Product deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting product:', err);
+    res.status(500).json({ error: 'Failed to delete product' });
+  }
+});
+
+// === ADD PRODUCTS ===
+// Serve static files
+app.use(express.static("html"));
+
+// API endpoint to handle form submission
+app.post("/api/products", uploadToMemory.single("images"), async (req, res) => {
+  try {
+    const { title, description, price, stock, category } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !price || !stock || !category) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    const allowedCategories = ["groceries", "beauty", "furniture", "fragrances"];
+    if (!allowedCategories.includes(category.toLowerCase())) {
+      return res.status(400).json({ error: "Invalid category" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: "Image is required" });
+    }
+
+    // Check for duplicate product title
+    const existingProduct = await Product.findOne({ title });
+    if (existingProduct) {
+      return res.status(409).json({ error: "Product with the same title already exists" });
+    }
+
+    const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
+    const newProduct = new Product({
+      title,
+      description,
+      price: parseFloat(price),
+      stock: parseInt(stock),
+      category,
+      images: [base64Image]
+    });
+
+    await newProduct.save();
+    res.status(201).json({ message: "Product added successfully" });
+
+  } catch (error) {
+    console.error("❌ Error saving product:", error);
+    res.status(500).json({ error: "Failed to add item. Please try again." });
+  }
+});
+
+// === FOOD RECIPE APIs ===
+const SPOONACULAR_API_KEY = 'c1e4b2cdb5d04c01835f1ec26f8145cb';
+
+// API route to fetch & store recipe based on product ID
+// Helper: check if an image URL is valid (returns 200)
+const imageExists = async (url) => {
+  try {
+    const res = await axios.head(url);
+    return res.status === 200;
+  } catch {
+    return false;
+  }
+};
+
+app.get('/api/recipes/product/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const product = await Product.findById(id);
+    if (!product) return res.status(404).json({ error: 'Product not found' });
+
+    // Only allow "Groceries" category
+    if (product.category.toLowerCase() !== 'groceries') {
+      return res.status(200).json([]); // Return blank for non-groceries
+    }
+
+    // Return from cache if exists
+    const existing = await Recipe.findOne({ productId: product._id });
+    if (existing) return res.status(200).json(existing.recipes);
+
+    // Step 1: Search recipes by product title
+    const searchUrl = `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(product.title)}&number=10&apiKey=${SPOONACULAR_API_KEY}`;
+    const searchRes = await axios.get(searchUrl);
+
+    const productWords = product.title.toLowerCase().split(/\s+/);
+    const recipes = [];
+
+    // Step 2: Fetch recipe details with filtering
+    for (const r of searchRes.data.results) {
+      if (recipes.length >= 3) break;
+
+      try {
+        const infoUrl = `https://api.spoonacular.com/recipes/${r.id}/information?includeNutrition=false&apiKey=${SPOONACULAR_API_KEY}`;
+        const detailRes = await axios.get(infoUrl);
+        const details = detailRes.data;
+
+        const titleLower = details.title.toLowerCase();
+        const matchesWord = productWords.some(word => titleLower.includes(word));
+        if (!matchesWord) continue;
+
+        const imgUrl = details.image || '';
+        const isImageValid = imgUrl && imgUrl.startsWith('http');
+
+        if (!isImageValid) continue;
+
+        // Optional: Validate image exists (skip broken ones)
+        const imageOK = await axios.head(imgUrl).then(r => r.status === 200).catch(() => false);
+        if (!imageOK) continue;
+
+        recipes.push({
+          id: details.id,
+          title: details.title,
+          image: imgUrl,
+          sourceUrl: details.sourceUrl
+        });
+
+      } catch (e) {
+        console.warn(`⚠️ Skipping recipe ${r.id}:`, e.message);
+      }
+    }
+
+    // ✅ Save to DB
+    const newRecipe = new Recipe({
+      productId: product._id,
+      title: product.title,
+      recipes
+    });
+
+    await newRecipe.save();
+    res.status(200).json(recipes);
+
+  } catch (error) {
+    console.error('❌ Recipe fetch error:', error.message || error);
+    res.status(500).json({ error: 'Failed to get recipes' });
+  }
+});
+
 app.post('/create-payment-intent', async (req, res) => {
   try {
     const { amount, currency, paymentMethodId, customerId } = req.body;
 
-    // Convert amount to smallest currency unit (e.g., cents)
     const amountInSen = Math.round(amount * 100);
 
     let customer = customerId;
 
-    // Create a new customer if no ID provided
     if (!customer) {
       const newCustomer = await stripe.customers.create();
       customer = newCustomer.id;
     }
 
-    // Attach payment method if not already attached
     try {
       await stripe.paymentMethods.attach(paymentMethodId, { customer });
     } catch (err) {
@@ -180,12 +483,10 @@ app.post('/create-payment-intent', async (req, res) => {
       }
     }
 
-    // Update customer's default payment method
     await stripe.customers.update(customer, {
       invoice_settings: { default_payment_method: paymentMethodId },
     });
 
-    // Create PaymentIntent but DO NOT confirm here (confirm: false)
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInSen,
       currency,
@@ -205,7 +506,6 @@ app.post('/create-payment-intent', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 
 // === ORDER APIs ===
 app.post('/api/payment', async (req, res) => {
@@ -273,32 +573,105 @@ app.get('/api/users/:userId', async (req, res) => {
   }
 });
 
-app.put('/api/users/:uid', async (req, res) => {
-  const uid = req.params.uid;
-  const updatedData = req.body; // Contains fields like email, address, phoneNumber, etc.
+app.use('/uploads', express.static('uploads'));
+
+app.put('/api/users/:userId', upload.single('profilePic'), async (req, res) => {
+  const userId = req.params.userId.trim();
+
+  const {
+    email,
+    address,
+    phoneNumber,
+    postcode,
+    city,
+    state
+  } = req.body;
 
   try {
     await client.connect();
     const db = client.db(dbName);
     const users = db.collection('users');
 
-    const result = await users.updateOne(
-      { uid: uid }, // Filter by user UID
-      { $set: updatedData } // Update the fields sent in request body
-    );
+    const checkUser = await users.findOne({ uid: userId });
+    console.log('🔍 Found user:', checkUser);
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ message: 'User not found' });
+    const updateData = {
+      ...(email && { email }),
+      ...(address && { address }),
+      ...(phoneNumber && { phoneNumber }),
+      ...(postcode && { postcode }),
+      ...(city && { city }),
+      ...(state && { state }),
+    };
+
+    if (req.file) {
+      updateData.profilePic = `/uploads/profile-pics/${req.file.filename}`;
     }
 
-    res.status(200).json({ message: 'User updated successfully' });
+    console.log('📝 Update data to save:', updateData);
+
+    const result = await users.findOneAndUpdate(
+      { uid: userId },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+
+    let updatedUser = result.value;
+
+    if (!updatedUser) {
+      console.log('⚠️ No change in data — re-fetching user...');
+      updatedUser = await users.findOne({ uid: userId });
+    }
+
+    if (!updatedUser) {
+      console.log('❌ No user found to update.');
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    console.log('✅ Updated user from DB:', updatedUser);
+
+    res.status(200).json({
+      success: true,
+      message: 'User updated successfully',
+      user: updatedUser
+    });
+
   } catch (error) {
     console.error('❌ Error updating user:', error);
-    res.status(500).json({ message: 'Failed to update user', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to update user', error: error.message });
   } finally {
     await client.close();
   }
 });
+
+app.delete('/api/users/:userId/profile-pic', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const db = await connectDB();
+    const users = db.collection('users');
+
+    const user = await users.findOne({ uid: userId });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.profilePic && !user.profilePic.includes('default.png')) {
+      const imagePath = path.join(__dirname, user.profilePic);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+m
+    await users.updateOne({ uid: userId }, { $set: { profilePic: '/uploads/profile-pics/default.png' } });
+
+    res.json({ success: true, imageUrl: '/uploads/profile-pics/default.png' });
+  } catch (error) {
+    console.error('Error deleting profile image:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete image' });
+  }
+});
+
 
 // === USER POINTS API ===
 app.patch('/api/users/:userId/points', async (req, res) => {
@@ -317,11 +690,9 @@ app.patch('/api/users/:userId/points', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Calculate the new points balance
     const currentPoints = user.points || 0;
     const newPoints = currentPoints + (pointsEarned || 0) - (pointsRedeemed || 0);
 
-    // Update the user's points
     const result = await db.collection('users').updateOne(
       { uid: userId },
       { $set: { points: newPoints } }
@@ -501,26 +872,42 @@ app.get('/api/cart/recommendation', async (req, res) => {
       return res.status(404).json({ message: 'No items in cart to base recommendations on.' });
     }
 
-    const keywords = cartItems.map(item => item.productName.split(' ')[0]); // Get first word of each product name
-    const searchQuery = keywords[Math.floor(Math.random() * keywords.length)];
+    const categories = cartItems
+      .map(item => item.productCategory || item.category)
+      .filter(Boolean);
 
-    // Fetch recommendation from DummyJSON
-    const response = await axios.get(`https://dummyjson.com/products/search?q=${searchQuery}`);
-    const results = response.data.products;
+    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
 
-    if (results.length > 0) {
-      const randomRecommendation = results[Math.floor(Math.random() * results.length)];
-      return res.json({ recommendation: randomRecommendation });
-    } else {
-      return res.status(404).json({ message: 'No recommendations found based on your cart items.' });
+    const response = await axios.get(`https://dummyjson.com/products/category/${encodeURIComponent(randomCategory)}`);
+    const dummyProducts = response.data.products;
+
+    if (!dummyProducts || dummyProducts.length === 0) {
+      return res.status(404).json({ message: 'No DummyJSON products found for this category.' });
     }
+
+    const localProducts = await db.collection('products').find({}, { projection: { title: 1 } }).toArray();
+    const localTitles = new Set(localProducts.map(p => p.title.toLowerCase()));
+
+    const cartTitles = new Set(cartItems.map(i => i.productName?.toLowerCase()).filter(Boolean));
+
+    const matchedProducts = dummyProducts.filter(p =>
+      localTitles.has(p.title.toLowerCase()) &&
+      !cartTitles.has(p.title.toLowerCase())
+    );
+
+    if (matchedProducts.length === 0) {
+      return res.status(404).json({ message: 'No matching new products to recommend.' });
+    }
+
+    const randomMatch = matchedProducts[Math.floor(Math.random() * matchedProducts.length)];
+
+    res.json({ recommendation: randomMatch });
+
   } catch (err) {
     console.error('❌ Error in recommendation API:', err);
     res.status(500).json({ message: 'Internal server error while fetching recommendations.' });
   }
 });
-
-
 
 // === START SERVER ===
 app.listen(PORT, () => {
