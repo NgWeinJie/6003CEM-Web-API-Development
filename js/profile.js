@@ -1,40 +1,17 @@
-// Assuming you already have Firebase initialized and user authenticated
-const firebaseConfig = {
-    apiKey: "AIzaSyDCdP64LQYeS4vu3lFH7XtUHOPVJOYCbO8",
-    authDomain: "enterprise-project-3448b.firebaseapp.com",
-    databaseURL: "https://enterprise-project-3448b-default-rtdb.firebaseio.com",
-    projectId: "enterprise-project-3448b",
-    storageBucket: "enterprise-project-3448b.appspot.com",
-    messagingSenderId: "1042464271522",
-    appId: "1:1042464271522:web:1d1a3ffadf6830b5767bfb",
-    measurementId: "G-3S19G51X7T"
+const fetchAndDisplayUser = async (userId) => {
+    try {
+        const response = await fetch(`/api/users/${userId}`);
+        if (!response.ok) throw new Error('User not found or fetch failed');
+        const userData = await response.json();
+
+        displayUserDetailsInForm(userData);
+
+        displayUserData(userData);
+    } catch (error) {
+        console.error('Error fetching and displaying user:', error);
+    }
 };
 
-// Initialize Firebase app
-firebase.initializeApp(firebaseConfig);
-
-// Function to fetch user data from Firestore
-const fetchUserData = (userId) => {
-    firebase.firestore().collection('users').doc(userId).get()
-    .then((doc) => {
-        if (doc.exists) {
-            const userData = doc.data();
-            // Display user data on the profile page
-            displayUserData(userData);
-            // Display user data in the edit profile modal form
-            displayUserDetailsInForm(userData);
-            // Display coins balance
-            displayCoinsBalance(userData.points || 0); 
-        } else {
-            console.log('No such document!');
-        }
-    })
-    .catch((error) => {
-        console.error('Error getting user data:', error);
-    });
-};
-
-// Function to display user data on the modal form
 const displayUserDetailsInForm = (userData) => {
     document.getElementById('emailModal').value = userData.email;
     document.getElementById('addressModal').value = userData.address;
@@ -44,7 +21,6 @@ const displayUserDetailsInForm = (userData) => {
     document.getElementById('stateModal').value = userData.state;
 };
 
-// Function to display user data on the profile page
 const displayUserData = (userData) => {
     const userNameElement = document.getElementById('userName');
     const userEmailElement = document.getElementById('userEmail');
@@ -54,11 +30,12 @@ const displayUserData = (userData) => {
     const userCityElement = document.getElementById('userCity');
     const userStateElement = document.getElementById('userState');
     const coinsBalanceElement = document.getElementById('coinsBalance');
+    const profilePicElement = document.getElementById('profilePic');
 
     if (userNameElement && userEmailElement && userAddressElement &&
         userPhoneElement && userPostcodeElement && userCityElement &&
-        userStateElement && coinsBalanceElement) {
-        
+        userStateElement && coinsBalanceElement && profilePicElement) {
+
         userNameElement.textContent = `${userData.firstName} ${userData.lastName}`;
         userEmailElement.textContent = userData.email;
         userAddressElement.textContent = userData.address;
@@ -67,56 +44,90 @@ const displayUserData = (userData) => {
         userCityElement.textContent = userData.city;
         userStateElement.textContent = userData.state;
         coinsBalanceElement.textContent = `${userData.points || 0}`;
+
+        if (userData.profilePic) {
+            profilePicElement.src = userData.profilePic;
+        } else {
+            profilePicElement.src = 'default.jpg'; 
+        }
     }
 };
 
-// Function to update user data in Firestore
-const updateUserProfile = (userId, newData) => {
-    firebase.firestore().collection('users').doc(userId).update(newData)
-    .then(() => {
-        console.log('User data updated successfully');
-        // Fetch and display updated user data
-        fetchUserData(userId);
-        // Close the edit profile modal
-        $('#editProfileModal').modal('hide');
-    })
-    .catch((error) => {
-        console.error('Error updating user data:', error);
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    const userId = localStorage.getItem('uid');
+    if (userId) {
+        fetchAndDisplayUser(userId);
+    }
+
+    document.getElementById('submit').addEventListener('click', async (event) => {
+        event.preventDefault();
+
+        const userId = localStorage.getItem('uid');
+        if (!userId) {
+            alert("User ID not found");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('email', document.getElementById('emailModal').value);
+        formData.append('address', document.getElementById('addressModal').value);
+        formData.append('phoneNumber', document.getElementById('phoneModal').value);
+        formData.append('postcode', document.getElementById('postcodeModal').value);
+        formData.append('city', document.getElementById('cityModal').value);
+        formData.append('state', document.getElementById('stateModal').value);
+
+        const file = document.getElementById('uploadPic').files[0];
+        if (file) {
+            formData.append('profilePic', file);
+        }
+
+        try {
+            const response = await fetch(`/api/users/${userId}`, {
+                method: 'PUT',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) throw new Error(result.message || 'Update failed');
+
+            console.log("✅ Full response from backend:", result);
+
+            if (result?.user?.profilePic) {
+                document.getElementById('profilePic').src = result.user.profilePic;
+            }
+
+            await fetchAndDisplayUser(userId);
+            alert(`User detials updated !`);
+            $('#editProfileModal').modal('hide');
+            location.reload();
+        } catch (err) {
+            console.error("❌ Error:", err.message);
+            alert(`Error: ${err.message}`);
+        }
     });
-};
 
-// Event listener for form submission
-document.getElementById('editProfileFormModal').addEventListener('submit', (event) => {
-    event.preventDefault(); // Prevent the default form submission
 
-    // Get the user ID
-    const user = firebase.auth().currentUser;
-    const userId = user.uid;
+    document.getElementById('deleteProfilePic').addEventListener('click', async () => {
+        const userId = localStorage.getItem('uid');
+        if (!userId) return alert("User ID not found");
 
-    // Get the new data from the form
-    const newData = {
-        email: document.getElementById('emailModal').value,
-        address: document.getElementById('addressModal').value,
-        phoneNumber: document.getElementById('phoneModal').value,
-        postcode: document.getElementById('postcodeModal').value,
-        city: document.getElementById('cityModal').value,
-        state: document.getElementById('stateModal').value
-    };
+        const confirmed = confirm("Are you sure you want to delete your profile picture?");
+        if (!confirmed) return;
 
-    // Update the user profile with the new data
-    updateUserProfile(userId, newData);
-});
+        const response = await fetch(`/api/users/${userId}/profile-pic`, { method: 'DELETE' });
+        const data = await response.json();
 
-// Check if user is authenticated and fetch user data
-firebase.auth().onAuthStateChanged((user) => {
-    if (user) {
-        // User is signed in
-        const userId = user.uid;
+        if (data.success) {
+            document.getElementById('profilePic').src = data.imageUrl;
+            alert("Profile picture deleted");
+        } else {
+            alert("Failed to delete profile picture");
+        }
 
-        // Retrieve user data from Firestore
-        fetchUserData(userId);
-    } else {
-        // User is signed out
-        console.log('User is not logged in.');
-    }
+        await fetchAndDisplayUser(userId);
+    });
+
 });

@@ -1,277 +1,324 @@
-// Assuming you already have Firebase initialized and user authenticated
-const firebaseConfig = {
-    apiKey: "AIzaSyDCdP64LQYeS4vu3lFH7XtUHOPVJOYCbO8",
-    authDomain: "enterprise-project-3448b.firebaseapp.com",
-    databaseURL: "https://enterprise-project-3448b-default-rtdb.firebaseio.com",
-    projectId: "enterprise-project-3448b",
-    storageBucket: "enterprise-project-3448b.appspot.com",
-    messagingSenderId: "1042464271522",
-    appId: "1:1042464271522:web:1d1a3ffadf6830b5767bfb",
-    measurementId: "G-3S19G51X7T"
-};
-
-// Initialize Firebase app
-firebase.initializeApp(firebaseConfig);
-
-// Get a reference to Firestore database
-const db = firebase.firestore();
-
-// Define tableBody as a global variable
 let tableBody;
 
-// Function to fetch cart items from Firestore
-function fetchCartItems(currentUser) {
-    if (!currentUser) {
-        console.error('Current user is not defined.');
-        alert('Please log in to view your cart.');
-        return;
-    }
+// Fetch cart items from REST API and render
+async function fetchCartItems(userId) {
+  if (!userId) {
+    alert('Please log in to view your cart.');
+    return;
+  }
 
-    const cartItemsContainer = document.getElementById('cartItems');
-    cartItemsContainer.innerHTML = '';
+  const cartItemsContainer = document.getElementById('cartItems');
+  cartItemsContainer.innerHTML = '';
+
+  try {
+    const res = await fetch(`/api/cart?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) throw new Error('Failed to fetch cart items');
+    const cartItems = await res.json();
+
+    if (cartItems.length === 0) {
+      cartItemsContainer.innerHTML = '<p>Your cart is empty.</p>';
+      document.getElementById('totalPrice').textContent = 'RM 0.00';
+      return;
+    }
 
     const table = document.createElement('table');
     table.classList.add('table', 'table-bordered');
 
     const tableHeader = document.createElement('thead');
     tableHeader.innerHTML = `
-        <tr>
-            <th>No</th>
-            <th>Image</th>
-            <th>Name</th>
-            <th>Price</th>
-            <th>Quantity</th>
-        </tr>
+      <tr>
+        <th>No</th>
+        <th>Image</th>
+        <th>Name</th>
+        <th>Price</th>
+        <th>Quantity</th>
+        <th>Delete</th>
+      </tr>
     `;
     table.appendChild(tableHeader);
 
     tableBody = document.createElement('tbody');
 
-    let totalPrice = 0;
-
-    db.collection('cart').where('userId', '==', currentUser.uid).get()
-        .then((querySnapshot) => {
-            let counter = 1;
-            querySnapshot.forEach((doc) => {
-                const cartItem = doc.data();
-
-                const row = document.createElement('tr');
-
-                const numberCell = document.createElement('td');
-                numberCell.textContent = counter++;
-                row.appendChild(numberCell);
-
-                const imageCell = document.createElement('td');
-                const image = document.createElement('img');
-                image.src = cartItem.productImageURL;
-                image.alt = cartItem.productName;
-                image.style.width = '120px';
-                image.style.height = '120px';
-                imageCell.appendChild(image);
-                row.appendChild(imageCell);
-
-                const nameCell = document.createElement('td');
-                nameCell.textContent = cartItem.productName;
-                row.appendChild(nameCell);
-
-                const priceCell = document.createElement('td');
-                const productPrice = cartItem.productPrice ? cartItem.productPrice : 0;
-                const formattedPrice = 'RM ' + productPrice.toFixed(2);
-                priceCell.textContent = formattedPrice;
-                row.appendChild(priceCell);
-
-                const quantityCell = document.createElement('td');
-                const minusButton = document.createElement('button');
-                minusButton.textContent = '-';
-                minusButton.classList.add('btn', 'btn-danger', 'mr-1');
-                const quantityInput = document.createElement('input');
-                quantityInput.type = 'number';
-                quantityInput.value = cartItem.productQuantity;
-                quantityInput.classList.add('form-control', 'd-inline-block', 'w-25', 'text-center');
-                quantityInput.setAttribute('max', cartItem.productStock);
-                const plusButton = document.createElement('button');
-                plusButton.textContent = '+';
-                plusButton.classList.add('btn', 'btn-success', 'ml-1');
-
-                quantityInput.addEventListener('input', () => {
-                    let enteredValue = parseInt(quantityInput.value);
-                    if (enteredValue < 0) {
-                        quantityInput.value = 0;
-                    }
-                    if (enteredValue > cartItem.productStock) {
-                        quantityInput.value = cartItem.productStock;
-                    }
-                    updateTotalPrice();
-                    updateCartItemQuantity(doc.id, quantityInput.value);
-                });
-
-                minusButton.addEventListener('click', () => {
-                    if (parseInt(quantityInput.value) > 1) {
-                        quantityInput.value = parseInt(quantityInput.value) - 1;
-                        updateTotalPrice();
-                        updateCartItemQuantity(doc.id, quantityInput.value);
-                    } else {
-                        db.collection('cart').doc(doc.id).delete()
-                            .then(() => {
-                                row.remove();
-                                alert('Item deleted successfully!');
-                                updateTotalPrice();
-                                renumberProducts();
-                            })
-                            .catch((error) => {
-                                alert('Failed to delete item. Please try again later.');
-                                console.error('Error removing document: ', error);
-                            });
-                    }
-                });
-
-                plusButton.addEventListener('click', () => {
-                    if (parseInt(quantityInput.value) < cartItem.productStock) {
-                        quantityInput.value = parseInt(quantityInput.value) + 1;
-                        updateTotalPrice();
-                        updateCartItemQuantity(doc.id, quantityInput.value);
-                    }
-                });
-
-                quantityCell.appendChild(minusButton);
-                quantityCell.appendChild(quantityInput);
-                quantityCell.appendChild(plusButton);
-                row.appendChild(quantityCell);
-
-                totalPrice += productPrice * parseInt(quantityInput.value);
-
-                const deleteCell = document.createElement('td');
-                const deleteButton = document.createElement('button');
-                deleteButton.textContent = 'Delete';
-                deleteButton.classList.add('btn', 'btn-danger');
-
-                deleteButton.addEventListener('click', () => {
-                    db.collection('cart').doc(doc.id).delete()
-                        .then(() => {
-                            row.remove();
-                            alert('Item deleted successfully!');
-                            updateTotalPrice();
-                            renumberProducts();
-                        })
-                        .catch((error) => {
-                            alert('Failed to delete item. Please try again later.');
-                            console.error('Error removing document: ', error);
-                        });
-                });
-                deleteCell.appendChild(deleteButton);
-                row.appendChild(deleteCell);
-
-                tableBody.appendChild(row);
-            });
-
-            table.appendChild(tableBody);
-            cartItemsContainer.appendChild(table);
-
-            updateTotalPrice();
-
-            const proceedToPaymentBtn = document.getElementById('proceedToPaymentBtn');
-            proceedToPaymentBtn.addEventListener('click', function() {
-                const promoCode = document.getElementById('promoCode').value;
-                const currentDate = new Date();
-                const totalPriceElement = document.getElementById('totalPrice');
-                const totalPrice = parseFloat(totalPriceElement.textContent.replace('RM ', ''));
-
-                if (promoCode.trim() !== '') {
-                    if (promoCodes[promoCode] && currentDate >= promoCodes[promoCode].startDate && currentDate <= promoCodes[promoCode].endDate) {
-                        const { discount, minPurchase } = promoCodes[promoCode];
-                        if (totalPrice >= minPurchase) {
-                            const newTotal = totalPrice - discount;
-                            alert(`Promo code applied successfully! You have received a discount of RM ${discount}. Your new total is RM ${newTotal.toFixed(2)}.`);
-                            window.location.href = `payment.html?discount=${discount}&total=${newTotal.toFixed(2)}&promoCode=${promoCode}`;
-                        } else {
-                            alert(`The minimum purchase amount for this promo code is RM ${minPurchase}.`);
-                        }
-                    } else {
-                        alert('Invalid or expired promo code.');
-                    }
-                } else {
-                    window.location.href = `payment.html?total=${totalPrice.toFixed(2)}`;
-                }
-            });
-        })
-        .catch((error) => {
-            console.error('Error fetching cart items:', error);
-            alert('Failed to fetch cart items. Please try again later.');
-        });
-}
-
-// Function to update the quantity of a cart item in Firestore
-function updateCartItemQuantity(cartItemId, newQuantity) {
-    db.collection('cart').doc(cartItemId).update({
-        productQuantity: newQuantity
-    })
-    .then(() => {
-        console.log('Cart item quantity updated successfully!');
-    })
-    .catch((error) => {
-        console.error('Error updating cart item quantity: ', error);
-    });
-}
-
-// Function to update total price
-function updateTotalPrice() {
-    let totalPrice = 0;
-    const rows = tableBody.querySelectorAll('tr');
-    rows.forEach(row => {
-        const productPrice = parseFloat(row.querySelector('td:nth-child(4)').textContent.replace('RM ', ''));
-        const quantity = parseInt(row.querySelector('td:nth-child(5) input').value);
-        totalPrice += productPrice * quantity;
-    });
-    const totalPriceElement = document.getElementById('totalPrice');
-    totalPriceElement.textContent = 'RM ' + totalPrice.toFixed(2);
-}
-
-// Function to renumber the products after deletion
-function renumberProducts() {
-    const rows = tableBody.querySelectorAll('tr');
     let counter = 1;
-    rows.forEach(row => {
-        row.querySelector('td:nth-child(1)').textContent = counter++;
-    });
-}
+    let totalPrice = 0;
 
-// Function to fetch promo codes from Firestore
-function fetchPromoCodes() {
-    return db.collection('promotion').get()
-        .then((querySnapshot) => {
-            const promoCodes = {};
-            querySnapshot.forEach((doc) => {
-                const promo = doc.data();
-                promoCodes[promo.code] = {
-                    discount: promo.discount,
-                    minPurchase: promo.minPurchase,
-                    startDate: promo.startDate.toDate(),
-                    endDate: promo.endDate.toDate()
-                };
-            });
-            return promoCodes;
-        })
-        .catch((error) => {
-            console.error('Error fetching promo codes: ', error);
-            return {};
-        });
-}
+    for (const cartItem of cartItems) {
+      const row = document.createElement('tr');
 
-// Fetch promo codes when the page loads
-let promoCodes = {};
-document.addEventListener('DOMContentLoaded', () => {
-    fetchPromoCodes().then((codes) => {
-        promoCodes = codes;
-    });
-});
+      // No
+      const numberCell = document.createElement('td');
+      numberCell.textContent = counter++;
+      row.appendChild(numberCell);
 
-// Call the function to fetch and display cart items when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-            fetchCartItems(user);
-        } else {
-            alert('Please log in to view your cart.');
+      // Image
+      const imageCell = document.createElement('td');
+      const image = document.createElement('img');
+      image.src = cartItem.productImage;
+      image.alt = cartItem.productName;
+      image.style.width = '120px';
+      image.style.height = '120px';
+      imageCell.appendChild(image);
+      row.appendChild(imageCell);
+
+      // Name
+      const nameCell = document.createElement('td');
+      nameCell.textContent = cartItem.productName;
+      row.appendChild(nameCell);
+
+      // Price
+      const priceCell = document.createElement('td');
+      const productPrice = cartItem.productPrice || 0;
+      priceCell.textContent = 'RM ' + parseFloat(productPrice).toFixed(2);
+      row.appendChild(priceCell);
+
+      // Quantity
+      const quantityCell = document.createElement('td');
+
+      const minusButton = document.createElement('button');
+      minusButton.textContent = '-';
+      minusButton.classList.add('btn', 'btn-primary', 'mr-1');
+
+      const quantityInput = document.createElement('input');
+      quantityInput.type = 'number';
+      quantityInput.value = cartItem.productQuantity;
+      quantityInput.classList.add('form-control', 'd-inline-block', 'w-25', 'text-center', 'quantity-input');
+      quantityInput.setAttribute('max', cartItem.productStock);
+
+      const plusButton = document.createElement('button');
+      plusButton.textContent = '+';
+      plusButton.classList.add('btn', 'btn-primary', 'ml-1');
+
+      async function updateQuantity(newQty) {
+        if (newQty < 1) newQty = 1;
+        if (newQty > cartItem.productStock) newQty = cartItem.productStock;
+        quantityInput.value = newQty;
+        await updateCartItemQuantity(cartItem._id, newQty);
+        updateTotalPrice();
+      }
+
+      quantityInput.addEventListener('input', () => {
+        let val = parseInt(quantityInput.value);
+        if (isNaN(val) || val < 1) val = 1;
+        if (val > cartItem.productStock) val = cartItem.productStock;
+        updateQuantity(val);
+      });
+
+      minusButton.addEventListener('click', () => {
+        let val = parseInt(quantityInput.value) - 1;
+        if (val < 1) val = 1;
+        updateQuantity(val);
+      });
+
+      plusButton.addEventListener('click', () => {
+        let val = parseInt(quantityInput.value) + 1;
+        if (val > cartItem.productStock) val = cartItem.productStock;
+        updateQuantity(val);
+      });
+
+      quantityCell.appendChild(minusButton);
+      quantityCell.appendChild(quantityInput);
+      quantityCell.appendChild(plusButton);
+      row.appendChild(quantityCell);
+
+      // Delete button
+      const deleteCell = document.createElement('td');
+      const deleteButton = document.createElement('button');
+      deleteButton.textContent = 'Delete';
+      deleteButton.classList.add('btn', 'btn-danger');
+
+      deleteButton.addEventListener('click', async () => {
+        if (confirm('Are you sure you want to delete this item from cart?')) {
+          try {
+            const delRes = await fetch(`/api/cart/${cartItem._id}`, { method: 'DELETE' });
+            if (!delRes.ok) throw new Error('Delete failed');
+            row.remove();
+            alert('Item deleted successfully!');
+            renumberProducts();
+            updateTotalPrice();
+          } catch (err) {
+            alert('Failed to delete item. Please try again later.');
+            console.error(err);
+          }
         }
+      });
+
+      deleteCell.appendChild(deleteButton);
+      row.appendChild(deleteCell);
+
+      tableBody.appendChild(row);
+
+      totalPrice += productPrice * parseInt(quantityInput.value);
+    }
+
+    table.appendChild(tableBody);
+    cartItemsContainer.appendChild(table);
+
+    updateTotalPrice();
+
+  } catch (error) {
+    console.error('Error fetching cart items:', error);
+    alert('Failed to fetch cart items. Please try again later.');
+  }
+}
+
+// PATCH update cart item quantity on server
+async function updateCartItemQuantity(cartItemId, newQuantity) {
+  try {
+    const res = await fetch(`/api/cart/${cartItemId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productQuantity: newQuantity })
     });
+    if (!res.ok) throw new Error('Failed to update quantity');
+    console.log('Cart item quantity updated successfully!');
+  } catch (error) {
+    console.error('Error updating cart item quantity:', error);
+  }
+}
+
+function updateTotalPrice() {
+  let totalPrice = 0;
+  const rows = tableBody.querySelectorAll('tr');
+  rows.forEach(row => {
+    const priceCell = row.querySelector('td:nth-child(4)');
+    const quantityInput = row.querySelector('td:nth-child(5) input');
+    if (priceCell && quantityInput) {
+      const productPrice = parseFloat(priceCell.textContent.replace('RM ', '')) || 0;
+      const quantity = parseInt(quantityInput.value) || 0;
+      totalPrice += productPrice * quantity;
+    }
+  });
+  const totalPriceElement = document.getElementById('totalPrice');
+  totalPriceElement.textContent = 'RM ' + totalPrice.toFixed(2);
+}
+
+function renumberProducts() {
+  const rows = tableBody.querySelectorAll('tr');
+  let counter = 1;
+  rows.forEach(row => {
+    row.querySelector('td:nth-child(1)').textContent = counter++;
+  });
+}
+
+// RECOMMENDATION 
+async function fetchRecommendation(userId) {
+  try {
+    const res = await fetch(`/api/cart/recommendation?userId=${userId}`);
+    const data = await res.json();
+    const recommendationContainer = document.getElementById('recommendation');
+    recommendationContainer.innerHTML = ''; 
+
+    if (data.recommendation) {
+      const rec = data.recommendation;
+
+      const card = document.createElement('div');
+      card.classList.add('card', 'recommendation-card', 'shadow');
+
+      const img = document.createElement('img');
+      img.src = Array.isArray(rec.images) ? rec.images[0] : rec.images;
+      img.alt = rec.title;
+      img.classList.add('card-img-top');
+      img.onerror = () => {
+        img.src = '/images/default-product.png';
+      };
+
+      const cardBody = document.createElement('div');
+      cardBody.classList.add('card-body');
+
+      const title = document.createElement('h5');
+      title.classList.add('card-title');
+      title.textContent = rec.title;
+
+      const price = document.createElement('p');
+      price.classList.add('card-text');
+      price.innerHTML = `<strong>Price:</strong> RM ${parseFloat(rec.price).toFixed(2)}`;
+
+      const desc = document.createElement('p');
+      desc.classList.add('card-text');
+      desc.textContent = rec.description;
+
+      const addBtn = document.createElement('button');
+      addBtn.classList.add('btn', 'btn-success');
+      addBtn.textContent = 'Add to Cart';
+
+      addBtn.addEventListener('click', async () => {
+        try {
+          const searchRes = await fetch(`/api/products/search/${encodeURIComponent(rec.title)}`);
+          const searchData = await searchRes.json();
+          const matched = searchData.products?.find(p => p.title.toLowerCase() === rec.title.toLowerCase());
+
+          if (!matched) {
+            alert('Product not found in store.');
+            return;
+          }
+
+          const cartItem = {
+            userId,
+            productId: matched._id,
+            productName: matched.title,
+            productPrice: matched.price,
+            productImage: matched.images?.[0] || '',
+            productStock: matched.stock,
+            productQuantity: 1,
+            productCategory: matched.category
+          };
+
+          const cartRes = await fetch('/api/cart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cartItem)
+          });
+
+          const result = await cartRes.json();
+          if (cartRes.ok) {
+            alert(`${matched.title} added to cart!`);
+            fetchCartItems(userId); 
+            fetchRecommendation(userId); 
+          } else {
+            alert(`❌ Failed: ${result.message}`);
+          }
+        } catch (err) {
+          console.error('Error adding to cart:', err);
+          alert('Something went wrong.');
+        }
+      });
+
+      cardBody.appendChild(title);
+      cardBody.appendChild(price);
+      cardBody.appendChild(desc);
+      cardBody.appendChild(addBtn);
+      card.appendChild(img);
+      card.appendChild(cardBody);
+
+      const col = document.createElement('div');
+      col.classList.add('col-md-6', 'col-lg-4');
+      col.appendChild(card);
+      recommendationContainer.appendChild(col);
+
+    } else {
+      recommendationContainer.innerHTML = `<p class="text-muted">No recommendations available at the moment.</p>`;
+    }
+  } catch (err) {
+    console.error('Failed to fetch recommendation:', err);
+    document.getElementById('recommendation').innerHTML = `<p class="text-danger">Could not load recommendation. Please try again later.</p>`;
+  }
+}
+
+
+
+// On DOM load, get user ID from localStorage and fetch cart
+document.addEventListener('DOMContentLoaded', () => {
+  const uid = localStorage.getItem('uid');
+
+  if (uid) {
+    fetchCartItems(uid);
+    fetchRecommendation(uid); 
+  } else {
+    alert('Please log in to view your cart.');
+  }
+
+  const paymentBtn = document.getElementById('proceedToPaymentBtn');
+  paymentBtn.addEventListener('click', () => {
+    window.location.href = '/payment.html';
+  });
 });

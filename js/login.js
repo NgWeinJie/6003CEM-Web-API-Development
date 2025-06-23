@@ -1,32 +1,16 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyDCdP64LQYeS4vu3lFH7XtUHOPVJOYCbO8",
-    authDomain: "enterprise-project-3448b.firebaseapp.com",
-    databaseURL: "https://enterprise-project-3448b-default-rtdb.firebaseio.com",
-    projectId: "enterprise-project-3448b",
-    storageBucket: "enterprise-project-3448b.appspot.com",
-    messagingSenderId: "1042464271522",
-    appId: "1:1042464271522:web:1d1a3ffadf6830b5767bfb",
-    measurementId: "G-3S19G51X7T"
-};
-
-// Initialize Firebase app
-firebase.initializeApp(firebaseConfig);
+const ApiKey = "AIzaSyBHl8xfPt6Mql2_9nDrJV7A-QsVyGOiZew";
 
 function validation() {
-    // Get the input field values
     const email = document.getElementById('user_email').value.trim();
     const password = document.getElementById('user_password').value.trim();
 
-    // Regular expression for email validation
     const isEmailValid = (email) => email.includes('@') && email.includes('.');
 
-    // Error messages
     const errorMessages = {
         user_email: 'Email must be valid.',
         user_password: 'Password must not be empty.'
     };
 
-    // Function to validate each field
     function validateField(fieldId, isValid, errorMessage) {
         const value = document.getElementById(fieldId).value.trim();
         const errorField = document.getElementById(fieldId + 'E');
@@ -41,88 +25,106 @@ function validation() {
         }
     }
 
-    // Check each field for validation
     const isValidEmail = validateField('user_email', isEmailValid, errorMessages.user_email);
-    const isValidPassword = validateField('user_password', (password) => !!password, errorMessages.user_password); // Validation for non-empty password
+    const isValidPassword = validateField('user_password', (password) => !!password, errorMessages.user_password);
 
-    // Log error status and return true if all fields pass validation, otherwise false
-    const isValidForm = isValidEmail && isValidPassword;
-    return isValidForm;
+    return isValidEmail && isValidPassword;
 }
 
-function loginUser() {
+// Call Firebase REST API to login
+async function loginUser() {
     const email = document.getElementById('user_email').value;
     const password = document.getElementById('user_password').value;
 
-    // Basic validation for email and password before making the API call
     if (!email || !password) {
         alert('Email and password cannot be empty.');
         return;
     }
 
-    firebase.auth().signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-            const user = userCredential.user;
-            // Check if the user's email is verified
-            if (user.emailVerified) {
-                // Redirect to home or home page after successful login
-                window.location.href = 'home.html';
-            } else {
-                alert('Please verify your email before logging in.');
-            }
-        })
-        .catch((error) => {
-            console.error('Login error:', error); // Log the detailed error for debugging
-            handleLoginError(error);
+    try {
+        //Sign in with email and password
+        const signInResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${ApiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email,
+                password,
+                returnSecureToken: true
+            })
         });
+
+        if (!signInResponse.ok) {
+            const errorData = await signInResponse.json();
+            throw new Error(errorData.error.message || 'Failed to login');
+        }
+
+        const signInData = await signInResponse.json();
+
+        // Check if email is verified using accounts:lookup
+        const lookupResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${ApiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken: signInData.idToken })
+        });
+
+        if (!lookupResponse.ok) {
+            const errorData = await lookupResponse.json();
+            throw new Error(errorData.error.message || 'Failed to verify user');
+        }
+
+        const lookupData = await lookupResponse.json();
+
+        const user = lookupData.users[0];
+
+        if (user.emailVerified) {
+            // Email is verified, redirect to home
+            localStorage.setItem('uid', signInData.localId);
+            window.location.href = 'home.html';
+        } else {
+            alert('Please verify your email before logging in.');
+        }
+
+    } catch (error) {
+        handleLoginError(error);
+    }
 }
 
 function handleLoginError(error) {
-    switch (error.code) {
-        case 'auth/wrong-password':
-        case 'auth/user-not-found':
+    const msg = error.message || 'Failed to login';
+    switch (msg) {
+        case 'EMAIL_NOT_FOUND':
+        case 'INVALID_PASSWORD':
             alert('Invalid email or password.');
             break;
-        case 'auth/invalid-email':
+        case 'INVALID_EMAIL':
             alert('Invalid email format.');
             break;
-        case 'auth/user-disabled':
+        case 'USER_DISABLED':
             alert('User account is disabled.');
             break;
-        case 'auth/internal-error':
-            alert('Invalid email or password.');
-            break;
         default:
-            alert('Failed to login: ' + error.message);
+            alert('Failed to login: ' + msg);
             break;
     }
 }
 
-// Get the Login button element
-const loginBtn = document.getElementById('loginBtn');
-
-// Attach an event listener to the Login button
-loginBtn.addEventListener('click', function(event) {
-    // Prevent the default form submission behavior
+document.getElementById('loginBtn').addEventListener('click', function(event) {
     event.preventDefault();
 
-    // Trigger validation for each field
     if (validation()) {
-        // If validation passes, proceed with user login
         loginUser();
     } else {
-        // If validation fails, add Bootstrap's was-validated class to the form
         const form = document.getElementById('loginForm');
         form.classList.add('was-validated');
     }
 });
 
-// Toggle password visibility
+// Toggle password visibility remains the same
 const togglePasswordBtn = document.getElementById('togglePassword');
 const passwordField = document.getElementById('user_password');
 
 togglePasswordBtn.addEventListener('click', function() {
     const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
     passwordField.setAttribute('type', type);
-    this.classList.toggle('fa-eye-slash'); // Toggle the eye icon
+    this.classList.toggle('fa-eye-slash');
 });
