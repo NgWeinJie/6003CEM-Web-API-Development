@@ -113,7 +113,7 @@ document.getElementById('addToCart').addEventListener('click', async function ()
             return;
         }
 
-        // Fetch the product data from your MongoDB API
+        // Fetch the product data from MongoDB API
         const response = await fetch(`/api/products/${productId}`);
         if (!response.ok) throw new Error('Failed to fetch product for cart');
 

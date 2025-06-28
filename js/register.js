@@ -39,7 +39,7 @@ async function sendVerificationEmail(idToken) {
   return response.json();
 }
 
-// Function to send user data to your Express backend
+// Function to send user data to Express backend
 async function saveUserDataToServer(userData) {
   const response = await fetch('http://localhost:3000/api/register', {
     method: 'POST',
@@ -55,7 +55,7 @@ async function saveUserDataToServer(userData) {
   return response.json();
 }
 
-// Main register function triggered by your form
+// Main register function triggered by form
 async function registerUser() {
   const firstName = document.getElementById('user_fullname').value;
   const lastName = document.getElementById('user_lastname').value;
